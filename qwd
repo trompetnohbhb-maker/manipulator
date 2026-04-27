@@ -91,11 +91,11 @@ CreateButton("Auto Attack", 1, function(state)
     _G.AutoAttack = state
     task.spawn(function()
         while _G.AutoAttack do
-            RunService.RenderStepped:Wait() -- Loop secepat mungkin (60 fps+)
+            RunService.RenderStepped:Wait(0.1) -- Loop secepat mungkin (60 fps+)
             pcall(function()
                 if LocalPlayer.Character:FindFirstChildOfClass("Tool") then
                     VirtualUser:CaptureController()
-                    VirtualUser:ClickButton1(Vector2.new(0,0)) -- Simulasi Klik Kiri Mouse
+                    VirtualUser:ClickButton1(Vector2.new(0,1)) -- Simulasi Klik Kiri Mouse
                 end
             end)
         end
