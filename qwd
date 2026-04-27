@@ -3,17 +3,39 @@ local LocalPlayer = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
--- [[ RESET STATUS ]] --
-_G.AutoAttack = false
-_G.AttackRange = false
-_G.FlyAbove = false
+-- [[ 1. DATA QUEST LENGKAP (SEA 1) ]] --
+local function GetQuestData()
+    local lv = LocalPlayer.Data.Level.Value
+    if lv < 10 then return "BanditQuest1", 1
+    elseif lv < 15 then return "MonkeyQuest1", 1
+    elseif lv < 30 then return "MonkeyQuest1", 2
+    elseif lv < 40 then return "PirateIslandQuest", 1
+    elseif lv < 60 then return "PirateIslandQuest", 2
+    elseif lv < 75 then return "DesertIslandQuest", 1
+    elseif lv < 90 then return "DesertIslandQuest", 2
+    elseif lv < 120 then return "SnowIslandQuest", 1
+    elseif lv < 150 then return "SnowIslandQuest", 2
+    elseif lv < 175 then return "MarineTreeQuest", 1
+    elseif lv < 190 then return "MarineTreeQuest", 2
+    elseif lv < 210 then return "SkyQuest", 1
+    elseif lv < 250 then return "SkyQuest", 2
+    elseif lv < 275 then return "PrisonQuest", 1
+    elseif lv < 300 then return "PrisonQuest", 2
+    elseif lv < 330 then return "MagmaQuest", 1
+    elseif lv < 425 then return "MagmaQuest", 2
+    elseif lv < 450 then return "FishmanQuest", 1
+    elseif lv < 575 then return "FishmanQuest", 2
+    elseif lv < 625 then return "SkyExp1Quest", 1
+    elseif lv < 700 then return "SkyExp1Quest", 2
+    else return "BanditQuest1", 1 end
+end
 
--- UI Setup YUTA HUB 6
+-- [[ 2. SETUP UI YUTA HUB 7 ]] --
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-if PlayerGui:FindFirstChild("YutaHub_V6") then PlayerGui.YutaHub_V1:Destroy() end
+if PlayerGui:FindFirstChild("YutaHub_V7") then PlayerGui.YutaHub_V7:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui", PlayerGui)
-ScreenGui.Name = "YutaHub_V6"
+ScreenGui.Name = "YutaHub_V7"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
@@ -24,14 +46,14 @@ Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
 local Header = Instance.new("TextLabel", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 40)
-Header.Text = "YUTA HUB 6"
+Header.Text = "YUTA HUB 7"
 Header.TextColor3 = Color3.fromRGB(255, 255, 255)
 Header.BackgroundColor3 = Color3.fromRGB(130, 0, 0)
 Header.Font = Enum.Font.SourceSansBold
 Header.TextSize = 16
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 10)
 
--- SISTEM DRAG
+-- Drag System
 local dragging, dragStart, startPos
 Header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -44,7 +66,7 @@ game:GetService("UserInputService").InputChanged:Connect(function(input)
         MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-game:GetService("UserInputService").InputEnded:Connect(function(input)
+UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
 end)
 
@@ -66,35 +88,43 @@ local function CreateButton(name, order, callback)
     end)
 end
 
--- [[ LOGIKA SILENT FAST ATTACK (YUTA V6) ]] --
-local function SilentAttack()
+-- [[ 3. ULTRA FAST ATTACK LOGIC ]] --
+local function GetEnemy()
+    local folder = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
+    for _, v in pairs(folder:GetChildren()) do
+        if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < 100 then
+            return v
+        end
+    end
+end
+
+local function SuperAttack()
     pcall(function()
         local Net = ReplicatedStorage.Modules.Net:FindFirstChild("RE/Attack") or ReplicatedStorage.Modules.Net:FindFirstChild("Attack")
         if Net then
-            -- Bypass: Kirim serangan tanpa animasi/suara (Stack 2x hit)
+            -- Extreme Spam 4x Hit
+            Net:FireServer(0.12)
+            Net:FireServer(0.12)
             Net:FireServer(0.12)
             Net:FireServer(0.12)
         end
     end)
 end
 
--- [[ CORE FEATURES ]] --
+-- [[ 4. CORE FEATURES ]] --
 
--- A. AUTO ATTACK (Silent Fast Hit)
+-- A. AUTO ATTACK
 CreateButton("Auto Attack", 1, function(state)
     _G.AutoAttack = state
     task.spawn(function()
         while _G.AutoAttack do
-            -- Loop secepat mungkin tanpa menunggu render
             RunService.Heartbeat:Wait()
-            if _G.AutoAttack then
-                SilentAttack()
-            end
+            if _G.AutoAttack then SuperAttack() end
         end
     end)
 end)
 
--- B. ATTACK RANGE (Hitbox Expander)
+-- B. ATTACK RANGE
 CreateButton("Attack Range", 2, function(state)
     _G.AttackRange = state
     task.spawn(function()
@@ -102,7 +132,7 @@ CreateButton("Attack Range", 2, function(state)
             task.wait(1)
             local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
             if tool and tool:FindFirstChild("Handle") then
-                tool.Handle.Size = _G.AttackRange and Vector3.new(60, 60, 60) or Vector3.new(1, 1, 1)
+                tool.Handle.Size = _G.AttackRange and Vector3.new(65, 65, 65) or Vector3.new(1,1,1)
                 tool.Handle.Transparency = 0.8
                 tool.Handle.CanCollide = false
             end
@@ -110,40 +140,31 @@ CreateButton("Attack Range", 2, function(state)
     end)
 end)
 
--- C. FLY ABOVE NPC (Tinggi 10 unit - PAS)
+-- C. FLY ABOVE NPC
 CreateButton("Fly Above NPC", 3, function(state)
     _G.FlyAbove = state
     task.spawn(function()
         while _G.FlyAbove do
             RunService.Heartbeat:Wait()
-            pcall(function()
-                local target = nil
-                local dist = 500
-                local enemies = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
-                for _, v in pairs(enemies:GetChildren()) do
-                    if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                        local mag = (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                        if mag < dist then dist = mag; target = v end
-                    end
-                end
-                if target then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
-                end
-            end)
-        end
+            local target = GetEnemy()
+            if target and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
+            end
+        end)
     end)
 end)
 
--- D. AUTO QUEST
+-- D. AUTO QUEST (SMART LEVEL)
 CreateButton("Auto Quest", 4, function(state)
     _G.AutoQuest = state
     task.spawn(function()
-        local comm = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
+        local comm = ReplicatedStorage.Remotes:FindFirstChild("CommF_")
         while _G.AutoQuest do
             if comm and not LocalPlayer.PlayerGui.Main.Quest.Visible then
-                comm:InvokeServer("StartQuest", "BanditQuest1", 1)
+                local qName, qId = GetQuestData()
+                comm:InvokeServer("StartQuest", qName, qId)
             end
-            task.wait(1.5)
+            task.wait(2)
         end
     end)
 end)
