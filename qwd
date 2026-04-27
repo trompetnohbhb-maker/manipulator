@@ -8,7 +8,7 @@ local Camera = workspace.CurrentCamera
 local AimSettings = {
     Enabled = true,
     AimPart = "Head",
-    FOV_Radius = 200, -- Ukuran lingkaran FOV
+    FOV_Radius = 900, -- Ukuran lingkaran FOV
     AimKey = Enum.UserInputType.MouseButton1 -- Klik Kiri
 }
 
