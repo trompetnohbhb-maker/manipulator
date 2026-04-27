@@ -4,86 +4,91 @@ local UserInputService = game:GetService("UserInputService")
 
 -- Wadah Utama
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "RonixFixedMenu"
+ScreenGui.Name = "RonixBlox_Draggable"
 ScreenGui.ResetOnSpawn = false
 
--- [[ 1. HEADER (SISTEM DRAG MANUAL) ]] --
-local Header = Instance.new("Frame", ScreenGui)
-Header.Size = UDim2.new(0, 180, 0, 35)
-Header.Position = UDim2.new(0.1, 0, 0.2, 0)
-Header.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-Header.BorderSizePixel = 0
+-- [[ 1. MAIN FRAME ]] --
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 160, 0, 220)
+MainFrame.Position = UDim2.new(0.1, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
 
--- LOGIKA GESER (DRAG) MANUAL
+local UICorner = Instance.new("UICorner", MainFrame)
+UICorner.CornerRadius = UDim.new(0, 8)
+
+-- [[ 2. SISTEM GESER (DRAG) MANUAL ]] --
 local dragging, dragInput, dragStart, startPos
-Header.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragStart = input.Position
-		startPos = Header.Position
-	end
-end)
-UserInputService.InputChanged:Connect(function(input)
-	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-		local delta = input.Position - dragStart
-		Header.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-	end
-end)
-UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = false
-	end
+
+local function update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
 end)
 
--- Tombol Klik Header
-local Title = Instance.new("TextButton", Header)
-Title.Size = UDim2.new(1, 0, 1, 0)
-Title.Text = "BLOX FRUIT MENU ▼"
+MainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- [[ 3. ISI MENU ]] --
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0.15, 0)
+Title.Text = "DRAG ME"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.BackgroundTransparency = 1
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 14
+Instance.new("UICorner", Title)
 
--- [[ 2. CONTENT CONTAINER ]] --
-local Content = Instance.new("Frame", Header)
-Content.Size = UDim2.new(1, 0, 0, 160)
-Content.Position = UDim2.new(0, 0, 1, 0)
-Content.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Content.Visible = false
-Content.BorderSizePixel = 0
+local Layout = Instance.new("UIListLayout", MainFrame)
+Layout.Padding = UDim.new(0, 5)
+Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+Layout.SortOrder = Enum.SortOrder.LayoutOrder
 
-local UIList = Instance.new("UIListLayout", Content)
-UIList.SortOrder = Enum.SortOrder.LayoutOrder
-UIList.Padding = UDim.new(0, 5)
-
-local function CreateFeature(name)
-    local btn = Instance.new("TextButton", Content)
-    btn.Size = UDim2.new(1, -10, 0, 35)
+local function CreateButton(name, order)
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.Size = UDim2.new(0.9, 0, 0.18, 0)
+    btn.LayoutOrder = order
     btn.Text = name .. ": OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.SourceSans
-    btn.TextSize = 14
-    
+    btn.TextSize = 13
+    Instance.new("UICorner", btn)
+
     local active = false
     btn.MouseButton1Click:Connect(function()
         active = not active
         btn.Text = name .. (active and ": ON" or ": OFF")
-        btn.TextColor3 = active and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(200, 200, 200)
+        btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
     end)
-    
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
 end
 
-CreateFeature("Auto Attack")
-CreateFeature("Kill Aura")
-CreateFeature("Fly Above NPC")
-CreateFeature("Auto Quest")
+CreateButton("Auto Attack", 1)
+CreateButton("Kill Aura", 2)
+CreateButton("Fly Above NPC", 3)
+CreateButton("Auto Quest", 4)
 
-Title.MouseButton1Click:Connect(function()
-    Content.Visible = not Content.Visible
-    Title.Text = Content.Visible and "BLOX FRUIT MENU ▲" or "BLOX FRUIT MENU ▼"
-end)
-
-Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 6)
-Instance.new("UICorner", Content).CornerRadius = UDim.new(0, 6)
+print("UI Draggable Berhasil Dimuat!")
