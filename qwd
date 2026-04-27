@@ -1,68 +1,106 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local VirtualUser = game:GetService("VirtualUser")
+local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
 
--- [[ 1. SETUP UI ]] --
+-- [[ 1. SISTEM UI YUTA HUB ]] --
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-if PlayerGui:FindFirstChild("YutaHub_V4") then PlayerGui.YutaHub_V4:Destroy() end
+if PlayerGui:FindFirstChild("YutaHub_Final") then
+    PlayerGui.YutaHub_Final:Destroy()
+end
 
 local ScreenGui = Instance.new("ScreenGui", PlayerGui)
-ScreenGui.Name = "YutaHub_V4"
+ScreenGui.Name = "YutaHub_Final"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 165, 0, 270)
-MainFrame.Position = UDim2.new(0.5, -82, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.Size = UDim2.new(0, 170, 0, 280)
+MainFrame.Position = UDim2.new(0.5, -85, 0.4, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = false -- Kita pakai sistem manual agar tidak bentrok
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
+-- Header / Handle Drag
 local Header = Instance.new("TextLabel", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 40)
 Header.Text = "YUTA HUB V4"
 Header.TextColor3 = Color3.fromRGB(255, 255, 255)
-Header.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+Header.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 Header.Font = Enum.Font.SourceSansBold
 Header.TextSize = 16
+Header.Active = true
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 10)
 
--- Drag System
-local dragging, dragStart, startPos
+-- [[ 2. PERBAIKAN SISTEM DRAG (PASTI BISA DIGERAKKAN) ]] --
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
 Header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = MainFrame.Position
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
     end
 end)
+
+Header.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
 UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    if input == dragInput and dragging then
+        update(input)
     end
 end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
-end)
 
+-- Wadah Isi Menu
 local ContentFrame = Instance.new("Frame", MainFrame)
-ContentFrame.Size = UDim2.new(1, 0, 1, -45); ContentFrame.Position = UDim2.new(0, 0, 0, 45); ContentFrame.BackgroundTransparency = 1
-local Layout = Instance.new("UIListLayout", ContentFrame); Layout.Padding = UDim.new(0, 6); Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+ContentFrame.Size = UDim2.new(1, 0, 1, -50)
+ContentFrame.Position = UDim2.new(0, 0, 0, 45)
+ContentFrame.BackgroundTransparency = 1
 
+local Layout = Instance.new("UIListLayout", ContentFrame)
+Layout.Padding = UDim.new(0, 7)
+Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- Fungsi Buat Tombol Rapi
 local function CreateButton(name, order, callback)
     local btn = Instance.new("TextButton", ContentFrame)
-    btn.Size = UDim2.new(0.9, 0, 0, 42); btn.LayoutOrder = order; btn.Text = name .. ": OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35); btn.TextColor3 = Color3.fromRGB(255, 255, 255); btn.Font = Enum.Font.SourceSansBold
+    btn.Size = UDim2.new(0.9, 0, 0, 40)
+    btn.LayoutOrder = order
+    btn.Text = name .. ": OFF"
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 13
     Instance.new("UICorner", btn)
+
     local active = false
     btn.MouseButton1Click:Connect(function()
         active = not active
         btn.Text = name .. (active and ": ON" or ": OFF")
-        btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(35, 35, 35)
+        btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(40, 40, 40)
         callback(active)
     end)
 end
 
--- [[ 2. CORE LOGIC ]] --
+-- [[ 3. LOGIKA FITUR UTAMA ]] --
 
 local function GetEnemy()
     local target, dist = nil, 500
@@ -78,11 +116,11 @@ local function GetEnemy()
     return target
 end
 
--- A. Auto Attack (Extreme Click)
+-- A. Auto Attack (Zero Delay Click)
 CreateButton("Auto Attack", 1, function(state)
-    _G.AA = state
+    _G.AutoAttack = state
     task.spawn(function()
-        while _G.AA do
+        while _G.AutoAttack do
             RunService.RenderStepped:Wait()
             pcall(function()
                 if LocalPlayer.Character:FindFirstChildOfClass("Tool") then
@@ -94,7 +132,7 @@ CreateButton("Auto Attack", 1, function(state)
     end)
 end)
 
--- B. Attack Range (Mob Pull Method)
+-- B. Attack Range (Mob Pull)
 CreateButton("Attack Range", 2, function(state)
     _G.Range = state
     task.spawn(function()
@@ -102,8 +140,7 @@ CreateButton("Attack Range", 2, function(state)
             RunService.Heartbeat:Wait()
             pcall(function()
                 local enemy = GetEnemy()
-                if enemy and _G.AA then
-                    -- Menarik musuh tepat ke bawah karakter kamu
+                if enemy and _G.AutoAttack then
                     enemy.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, -10, 0)
                     enemy.HumanoidRootPart.CanCollide = false
                 end
@@ -112,7 +149,7 @@ CreateButton("Attack Range", 2, function(state)
     end)
 end)
 
--- C. Fly Above NPC (Tinggi 25 + LookDown)
+-- C. Fly Above NPC (Tinggi 25 + Anti Gravity)
 CreateButton("Fly Above NPC", 3, function(state)
     _G.Fly = state
     task.spawn(function()
@@ -122,10 +159,18 @@ CreateButton("Fly Above NPC", 3, function(state)
                 local target = GetEnemy()
                 local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
                 if target and root then
-                    -- Melayang setinggi 25 unit di atas musuh
+                    if not root:FindFirstChild("YutaG") then
+                        local bv = Instance.new("BodyVelocity", root)
+                        bv.Name = "YutaG"
+                        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+                        bv.Velocity = Vector3.new(0,0,0)
+                    end
                     root.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 25, 0)
                 end
             end)
+        end
+        if LocalPlayer.Character.HumanoidRootPart:FindFirstChild("YutaG") then
+            LocalPlayer.Character.HumanoidRootPart.YutaG:Destroy()
         end
     end)
 end)
@@ -139,7 +184,9 @@ CreateButton("Auto Quest", 4, function(state)
             if comm and not LocalPlayer.PlayerGui.Main.Quest.Visible then
                 comm:InvokeServer("StartQuest", "BanditQuest1", 1)
             end
-            task.wait(1)
+            task.wait(1.5)
         end
     end)
 end)
+
+print("Yuta Hub V4 FIXED: Menu & Drag Aman!")
