@@ -3,48 +3,48 @@ local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- [[ 1. PENCARI REMOTE & DATA ]] --
-local AttackRemote
-local function FindAttackRemote()
-    if AttackRemote then return AttackRemote end
-    local net = ReplicatedStorage:FindFirstChild("Modules") and ReplicatedStorage.Modules:FindFirstChild("Net")
-    if net then
-        local re = net:FindFirstChild("RE") or net:FindFirstChild("RemoteEvents")
-        if re then AttackRemote = re:FindFirstChild("Attack") end
+-- [[ 1. OPTIMIZED REMOTE FINDER ]] --
+local function GetAttackRemote()
+    -- Mencari remote attack secara dinamis agar tidak Infinite Yield
+    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+        if v.Name == "Attack" and v:IsA("RemoteEvent") then
+            return v
+        end
     end
-    return AttackRemote
 end
 
-local MainRemote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
+local function GetCommF()
+    return ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
+end
 
--- [[ 2. SETUP UI YUTA HUB ]] --
+-- [[ 2. UI SETUP - YUTA HUB ]] --
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-if PlayerGui:FindFirstChild("YutaHub_Gui") then PlayerGui.YutaHub_Gui:Destroy() end
+if PlayerGui:FindFirstChild("YutaHub_V3") then PlayerGui.YutaHub_V3:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui", PlayerGui)
-ScreenGui.Name = "YutaHub_Gui"
+ScreenGui.Name = "YutaHub_V3"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 160, 0, 260)
-MainFrame.Position = UDim2.new(0.5, -80, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.Size = UDim2.new(0, 165, 0, 270)
+MainFrame.Position = UDim2.new(0.5, -82, 0.4, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
--- Header
+-- Header (Handle Drag)
 local Header = Instance.new("TextLabel", MainFrame)
-Header.Size = UDim2.new(1, 0, 0, 35)
-Header.Text = "YUTA HUB"
+Header.Size = UDim2.new(1, 0, 0, 40)
+Header.Text = "YUTA HUB V3"
 Header.TextColor3 = Color3.fromRGB(255, 255, 255)
-Header.BackgroundColor3 = Color3.fromRGB(60, 0, 0)
+Header.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
 Header.Font = Enum.Font.SourceSansBold
 Header.TextSize = 16
 Header.Active = true
-Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 10)
 
--- Sistem Drag
+-- Smooth Drag System
 local dragging, dragStart, startPos
 Header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -66,39 +66,39 @@ UserInputService.InputEnded:Connect(function(input)
 end)
 
 local ContentFrame = Instance.new("Frame", MainFrame)
-ContentFrame.Size = UDim2.new(1, 0, 1, -40)
-ContentFrame.Position = UDim2.new(0, 0, 0, 40)
+ContentFrame.Size = UDim2.new(1, 0, 1, -45)
+ContentFrame.Position = UDim2.new(0, 0, 0, 45)
 ContentFrame.BackgroundTransparency = 1
 local Layout = Instance.new("UIListLayout", ContentFrame)
-Layout.Padding = UDim.new(0, 5)
+Layout.Padding = UDim.new(0, 6)
 Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- Fungsi Tombol
+-- Button Creator
 local function CreateButton(name, order, callback)
     local btn = Instance.new("TextButton", ContentFrame)
-    btn.Size = UDim2.new(0.9, 0, 0, 40)
+    btn.Size = UDim2.new(0.9, 0, 0, 42)
     btn.LayoutOrder = order
     btn.Text = name .. ": OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 13
     Instance.new("UICorner", btn)
 
     local active = false
     btn.MouseButton1Click:Connect(function()
         active = not active
         btn.Text = name .. (active and ": ON" or ": OFF")
-        btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+        btn.BackgroundColor3 = active and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(40, 40, 40)
         callback(active)
     end)
 end
 
--- [[ 3. FITUR UTAMA YUTA HUB ]] --
+-- [[ 3. CORE LOGIC ]] --
 
--- Fungsi Cari Musuh Terdekat
 local function GetNearestEnemy()
     local target = nil
-    local dist = 500
+    local dist = 1000
     local folder = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
     if folder then
         for _, v in pairs(folder:GetChildren()) do
@@ -114,27 +114,25 @@ local function GetNearestEnemy()
     return target
 end
 
--- 1. Auto Attack (Updated)
+-- A. Fast Auto Attack (Improved)
 CreateButton("Auto Attack", 1, function(state)
-    _G.AA = state
+    _G.AutoAttack = state
     task.spawn(function()
-        while _G.AA do
+        local remote = GetAttackRemote()
+        while _G.AutoAttack do
             pcall(function()
                 local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                local remote = FindAttackRemote()
                 if tool and remote then
-                    -- Spam 2 tipe argumen agar pasti kena
-                    remote:FireServer() 
-                    remote:FireServer(0.1)
                     tool:Activate()
+                    remote:FireServer(0.1) -- Argumen standar hit
                 end
             end)
-            task.wait(0.1)
+            task.wait(0.05) -- Speed ditingkatkan (aman)
         end
     end)
 end)
 
--- 2. Attack Range
+-- B. Big Hitbox (Attack Range)
 CreateButton("Attack Range", 2, function(state)
     _G.Range = state
     task.spawn(function()
@@ -142,7 +140,7 @@ CreateButton("Attack Range", 2, function(state)
             pcall(function()
                 local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
                 if tool and tool:FindFirstChild("Handle") then
-                    tool.Handle.Size = Vector3.new(40, 40, 40)
+                    tool.Handle.Size = Vector3.new(55, 55, 55)
                     tool.Handle.Transparency = 0.8
                     tool.Handle.CanCollide = false
                 end
@@ -152,14 +150,15 @@ CreateButton("Attack Range", 2, function(state)
     end)
 end)
 
--- 3. Fly Above NPC
+-- C. Fly Above NPC (Stability Fix)
 CreateButton("Fly Above NPC", 3, function(state)
     _G.Fly = state
     task.spawn(function()
         while _G.Fly do
             pcall(function()
                 local enemy = GetNearestEnemy()
-                if enemy then
+                if enemy and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    -- Mengunci posisi agar tidak goyang
                     LocalPlayer.Character.HumanoidRootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 8, 0)
                 end
             end)
@@ -168,20 +167,27 @@ CreateButton("Fly Above NPC", 3, function(state)
     end)
 end)
 
--- 4. Auto Quest
+-- D. Auto Quest (Smart Selection)
+local function GetMyQuest()
+    local lv = LocalPlayer.Data.Level.Value
+    if lv < 10 then return "BanditQuest1", 1
+    elseif lv < 15 then return "MonkeyQuest1", 1
+    elseif lv < 30 then return "MonkeyQuest1", 2
+    else return "BanditQuest1", 1 end
+end
+
 CreateButton("Auto Quest", 4, function(state)
-    _G.Quest = state
+    _G.AutoQuest = state
     task.spawn(function()
-        while _G.Quest do
-            pcall(function()
-                if MainRemote and not LocalPlayer.PlayerGui.Main.Quest.Visible then
-                    -- Set Default ke Bandit (Level 1)
-                    MainRemote:InvokeServer("StartQuest", "BanditQuest1", 1)
-                end
-            end)
-            task.wait(2)
+        local comm = GetCommF()
+        while _G.AutoQuest do
+            if comm and (not LocalPlayer.PlayerGui.Main.Quest.Visible) then
+                local name, id = GetMyQuest()
+                comm:InvokeServer("StartQuest", name, id)
+            end
+            task.wait(1.5)
         end
     end)
 end)
 
-print("Yuta Hub Berhasil Digabungkan & Dimuat!")
+print("Yuta Hub V3: Cross-checked and Optimized!")
