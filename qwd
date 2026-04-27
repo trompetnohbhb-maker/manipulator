@@ -1,23 +1,44 @@
-local function createESP(part)
-	-- Membuat Highlight (Fitur bawaan Roblox untuk efek garis tepi)
-	local highlight = Instance.new("Highlight")
-	highlight.Name = "ESP_Effect"
-	highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Warna merah
-	highlight.FillTransparency = 0.5 -- Transparansi isi
-	highlight.OutlineColor = Color3.fromRGB(255, 255, 255) -- Garis tepi putih
-	highlight.Parent = part
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local espEnabled = true -- Ubah jadi false kalau mau dimatikan
+
+local function buatESP(player)
+    player.CharacterAdded:Connect(function(char)
+        local root = char:WaitForChild("HumanoidRootPart")
+        
+        -- 1. Membuat Box (Kotak di badan pemain)
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "PlayerESP"
+        highlight.Parent = char
+        highlight.FillTransparency = 0.6 -- Transparansi kotak
+        highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Merah untuk musuh
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255) -- Putih untuk garis tepi
+        
+        -- 2. Membuat Nama & Jarak (BillboardGui)
+        local gui = Instance.new("BillboardGui")
+        gui.Name = "TagESP"
+        gui.Size = UDim2.new(0, 100, 0, 50)
+        gui.AlwaysOnTop = true
+        gui.StudsOffset = Vector3.new(0, 3, 0)
+        gui.Parent = root
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Text = player.Name
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.TextStrokeTransparency = 0
+        label.Parent = gui
+    end)
 end
 
--- Mencari semua pemain di dalam game
-for _, player in pairs(game.Players:GetPlayers()) do
-	if player.Character and player ~= game.Players.LocalPlayer then
-		createESP(player.Character)
-	end
+-- Jalankan fungsi untuk semua pemain yang masuk
+for _, p in pairs(Players:GetPlayers()) do
+    if p ~= LocalPlayer then
+        buatESP(p)
+    end
 end
 
--- Menambahkan ESP jika ada pemain baru yang muncul
-game.Players.PlayerAdded:Connect(function(player)
-	player.CharacterAdded:Connect(function(char)
-		createESP(char)
-	end)
-end)
+Players.PlayerAdded:Connect(buatESP)
