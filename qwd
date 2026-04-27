@@ -1,31 +1,27 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
 
-_G.KillAura = true -- Set ke false untuk mematikan
-_G.AttackRange = 300 -- Jarak jangkauan pukul
+_G.KillAura = true
+_G.Range = 40 -- Jarak aman agar tidak terdeteksi bypass
 
 task.spawn(function()
     while _G.KillAura do
-        task.wait(0.1) -- Jeda agar tidak mudah kena kick
+        task.wait(0.1)
         pcall(function()
-            local char = LocalPlayer.Character
-            local tool = char and char:FindFirstChildOfClass("Tool")
-            
+            local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
             if tool then
-                -- Mencari NPC terdekat
+                -- Cari musuh di folder Enemies
                 for _, v in pairs(workspace.Enemies:GetChildren()) do
-                    local humanoid = v:FindFirstChild("Humanoid")
-                    local root = v:FindFirstChild("HumanoidRootPart")
-                    
-                    if humanoid and root and humanoid.Health > 0 then
-                        local dist = (root.Position - char.HumanoidRootPart.Position).Magnitude
-                        if dist < _G.AttackRange then
-                            -- Menyerang otomatis (Kill Aura)
-                            tool:Activate()
-                            -- Logic Fast Attack (Hapus animasi cooldown)
-                            for _, anim in pairs(char.Humanoid:GetPlayingAnimationTracks()) do
-                                anim:Stop()
+                    if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                        local root = v:FindFirstChild("HumanoidRootPart")
+                        if root then
+                            local dist = (root.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                            if dist < _G.Range then
+                                -- Serang tanpa teleport NPC (Lebih Aman)
+                                tool:Activate()
+                                -- Fast Attack (Hapus animasi)
+                                local anims = LocalPlayer.Character.Humanoid:GetPlayingAnimationTracks()
+                                for i=1, #anims do anims[i]:Stop() end
                             end
                         end
                     end
@@ -34,5 +30,3 @@ task.spawn(function()
         end)
     end
 end)
-
-print("Kill Aura & Fast Attack Aktif!")
