@@ -1,42 +1,37 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local UserInputService = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 -- [[ 1. SETUP UI ]] --
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-if PlayerGui:FindFirstChild("YutaHub_V3") then PlayerGui.YutaHub_V3:Destroy() end
+if PlayerGui:FindFirstChild("YutaHub_V4") then PlayerGui.YutaHub_V4:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui", PlayerGui)
-ScreenGui.Name = "YutaHub_V3"
+ScreenGui.Name = "YutaHub_V4"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 165, 0, 270)
 MainFrame.Position = UDim2.new(0.5, -82, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
 local Header = Instance.new("TextLabel", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 40)
-Header.Text = "YUTA HUB V3"
+Header.Text = "YUTA HUB V4"
 Header.TextColor3 = Color3.fromRGB(255, 255, 255)
-Header.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+Header.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
 Header.Font = Enum.Font.SourceSansBold
 Header.TextSize = 16
-Header.Active = true
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 10)
 
--- Smooth Drag
+-- Drag System
 local dragging, dragStart, startPos
 Header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
+        dragging = true; dragStart = input.Position; startPos = MainFrame.Position
     end
 end)
 UserInputService.InputChanged:Connect(function(input)
@@ -46,128 +41,105 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
 end)
 
 local ContentFrame = Instance.new("Frame", MainFrame)
-ContentFrame.Size = UDim2.new(1, 0, 1, -45)
-ContentFrame.Position = UDim2.new(0, 0, 0, 45)
-ContentFrame.BackgroundTransparency = 1
-local Layout = Instance.new("UIListLayout", ContentFrame)
-Layout.Padding = UDim.new(0, 6)
-Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+ContentFrame.Size = UDim2.new(1, 0, 1, -45); ContentFrame.Position = UDim2.new(0, 0, 0, 45); ContentFrame.BackgroundTransparency = 1
+local Layout = Instance.new("UIListLayout", ContentFrame); Layout.Padding = UDim.new(0, 6); Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 local function CreateButton(name, order, callback)
     local btn = Instance.new("TextButton", ContentFrame)
-    btn.Size = UDim2.new(0.9, 0, 0, 42)
-    btn.LayoutOrder = order
-    btn.Text = name .. ": OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 13
+    btn.Size = UDim2.new(0.9, 0, 0, 42); btn.LayoutOrder = order; btn.Text = name .. ": OFF"
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35); btn.TextColor3 = Color3.fromRGB(255, 255, 255); btn.Font = Enum.Font.SourceSansBold
     Instance.new("UICorner", btn)
-
     local active = false
     btn.MouseButton1Click:Connect(function()
         active = not active
         btn.Text = name .. (active and ": ON" or ": OFF")
-        btn.BackgroundColor3 = active and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(40, 40, 40)
+        btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(35, 35, 35)
         callback(active)
     end)
 end
 
 -- [[ 2. CORE LOGIC ]] --
 
--- A. Auto Attack (Metode Click)
+local function GetEnemy()
+    local target, dist = nil, 500
+    local folder = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
+    if folder then
+        for _, v in pairs(folder:GetChildren()) do
+            if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
+                local mag = (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                if mag < dist then dist = mag; target = v end
+            end
+        end
+    end
+    return target
+end
+
+-- A. Auto Attack (Extreme Click)
 CreateButton("Auto Attack", 1, function(state)
-    _G.AutoAttack = state
+    _G.AA = state
     task.spawn(function()
-        while _G.AutoAttack do
+        while _G.AA do
+            RunService.RenderStepped:Wait()
             pcall(function()
                 if LocalPlayer.Character:FindFirstChildOfClass("Tool") then
                     VirtualUser:CaptureController()
-                    VirtualUser:ClickButton1(Vector2.new(850, 420))
+                    VirtualUser:ClickButton1(Vector2.new(0,0))
                 end
             end)
-            task.wait(0.01)
         end
     end)
 end)
 
--- B. Attack Range (Force Resize Handle)
+-- B. Attack Range (Mob Pull Method)
 CreateButton("Attack Range", 2, function(state)
     _G.Range = state
     task.spawn(function()
         while _G.Range do
+            RunService.Heartbeat:Wait()
             pcall(function()
-                local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                if tool then
-                    for _, part in pairs(tool:GetDescendants()) do
-                        if part:IsA("BasePart") and (part.Name == "Handle" or part.Name == "Blade" or part.Name == "Part") then
-                            part.Size = Vector3.new(60, 60, 60)
-                            part.Transparency = 0.8
-                            part.CanCollide = false
-                        end
-                    end
+                local enemy = GetEnemy()
+                if enemy and _G.AA then
+                    -- Menarik musuh tepat ke bawah karakter kamu
+                    enemy.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, -10, 0)
+                    enemy.HumanoidRootPart.CanCollide = false
                 end
             end)
-            task.wait(1)
         end
     end)
 end)
 
--- C. Fly Above NPC (Tinggi 12 + Anti Gravity)
+-- C. Fly Above NPC (Tinggi 25 + LookDown)
 CreateButton("Fly Above NPC", 3, function(state)
     _G.Fly = state
     task.spawn(function()
         while _G.Fly do
+            RunService.Heartbeat:Wait()
             pcall(function()
-                local target = nil
-                local dist = 1000
-                local folder = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
-                for _, v in pairs(folder:GetChildren()) do
-                    if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
-                        local mag = (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                        if mag < dist then dist = mag target = v end
-                    end
-                end
-                
-                if target and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    -- Menghilangkan gravitasi agar melayang sempurna
-                    if not LocalPlayer.Character.HumanoidRootPart:FindFirstChild("YutaFlyForce") then
-                        local bv = Instance.new("BodyVelocity", LocalPlayer.Character.HumanoidRootPart)
-                        bv.Name = "YutaFlyForce"
-                        bv.Velocity = Vector3.new(0,0,0)
-                        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-                    end
-                    -- Teleport ke atas musuh (Tinggi 12)
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 12, 0)
+                local target = GetEnemy()
+                local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if target and root then
+                    -- Melayang setinggi 25 unit di atas musuh
+                    root.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 25, 0)
                 end
             end)
-            task.wait()
-        end
-        -- Hapus gaya terbang jika fitur dimatikan
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart:FindFirstChild("YutaFlyForce") then
-            LocalPlayer.Character.HumanoidRootPart.YutaFlyForce:Destroy()
         end
     end)
 end)
 
--- D. Auto Quest (Smart)
+-- D. Auto Quest
 CreateButton("Auto Quest", 4, function(state)
-    _G.AutoQuest = state
+    _G.Quest = state
     task.spawn(function()
-        local comm = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
-        while _G.AutoQuest do
-            if comm and (not LocalPlayer.PlayerGui.Main.Quest.Visible) then
+        while _G.Quest do
+            local comm = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
+            if comm and not LocalPlayer.PlayerGui.Main.Quest.Visible then
                 comm:InvokeServer("StartQuest", "BanditQuest1", 1)
             end
-            task.wait(1.5)
+            task.wait(1)
         end
     end)
 end)
-
-print("Yuta Hub V3: Range Fixed & Fly Height Updated!")
