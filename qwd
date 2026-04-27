@@ -1,33 +1,12 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 -- KONFIGURASI
-local FOV_RADIUS = 200 
-local AIM_PART = "Head"
+local FOV_JARAK = 100 -- Seberapa dekat musuh harus ada di layar biar kekunci
 
--- [[ 1. BUAT LINGKARAN FOV PAKAI GUI (PASTI MUNCUL) ]] --
-local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "FOVScreen"
-ScreenGui.ResetOnSpawn = false
-
-local FOVFrame = Instance.new("Frame", ScreenGui)
-FOVFrame.Name = "FOVCircle"
-FOVFrame.Size = UDim2.new(0, FOV_RADIUS * 2, 0, FOV_RADIUS * 2)
-FOVFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-FOVFrame.BackgroundTransparency = 1
-FOVFrame.BorderSizePixel = 0
-
-local UIStroke = Instance.new("UIStroke", FOVFrame)
-UIStroke.Thickness = 2
-UIStroke.Color = Color3.fromRGB(255, 255, 255) 
-
-local UICorner = Instance.new("UICorner", FOVFrame)
-UICorner.CornerRadius = UDim.new(1, 0)
-
--- [[ 2. ESP STABIL (LOGIKA ASLI KAMU) ]] --
+-- [[ 1. ESP STABIL (LOGIKA ASLI KAMU - PASTI WORK) ]] --
 local function buatESP(player)
     player.CharacterAdded:Connect(function(char)
         if player == LocalPlayer then return end
@@ -49,44 +28,35 @@ local function buatESP(player)
     end)
 end
 
--- [[ 3. LOGIKA AUTO-LOCK (TANPA SYARAT KLIK) ]] --
-local function getClosestPlayer()
+-- [[ 2. LOGIKA AUTO-LOCK (STABIL & INSTAN) ]] --
+RunService.RenderStepped:Connect(function()
     local target = nil
-    local shortestDistance = FOV_RADIUS
-    local mousePos = UserInputService:GetMouseLocation()
+    local shortestDistance = FOV_JARAK
+    local mousePos = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2) -- Tengah layar
 
+    -- Mencari musuh terdekat dari tengah layar
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(AIM_PART) then
-            local part = player.Character[AIM_PART]
-            local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local head = player.Character.Head
+            local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
             
             if onScreen then
                 local distance = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
                 if distance < shortestDistance then
-                    target = part
+                    target = head
                     shortestDistance = distance
                 end
             end
         end
     end
-    return target
-end
 
--- Update Loop: Dipaksa nempel setiap saat
-RunService.RenderStepped:Connect(function()
-    -- Posisi FOV ngikutin mouse
-    local mousePos = UserInputService:GetMouseLocation()
-    FOVFrame.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
-
-    -- CARI TARGET DAN PAKSA NEMPEL
-    local target = getClosestPlayer()
+    -- PAKSA NEMPEL (Tanpa syarat klik)
     if target then
-        -- Baris ini yang bikin kamera nempel otomatis
         Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
     end
 end)
 
--- Jalankan ESP
+-- Jalankan ESP awal
 for _, p in pairs(Players:GetPlayers()) do
     if p.Character then buatESP(p) end
     buatESP(p)
