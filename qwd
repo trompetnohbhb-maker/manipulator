@@ -2,22 +2,9 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualUser = game:GetService("VirtualUser")
 
--- [[ 1. OPTIMIZED REMOTE FINDER ]] --
-local function GetAttackRemote()
-    -- Mencari remote attack secara dinamis agar tidak Infinite Yield
-    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
-        if v.Name == "Attack" and v:IsA("RemoteEvent") then
-            return v
-        end
-    end
-end
-
-local function GetCommF()
-    return ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
-end
-
--- [[ 2. UI SETUP - YUTA HUB ]] --
+-- [[ 1. SETUP UI ]] --
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 if PlayerGui:FindFirstChild("YutaHub_V3") then PlayerGui.YutaHub_V3:Destroy() end
 
@@ -33,18 +20,17 @@ MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
--- Header (Handle Drag)
 local Header = Instance.new("TextLabel", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 40)
 Header.Text = "YUTA HUB V3"
 Header.TextColor3 = Color3.fromRGB(255, 255, 255)
-Header.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+Header.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
 Header.Font = Enum.Font.SourceSansBold
 Header.TextSize = 16
 Header.Active = true
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 10)
 
--- Smooth Drag System
+-- Smooth Drag
 local dragging, dragStart, startPos
 Header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -73,7 +59,6 @@ local Layout = Instance.new("UIListLayout", ContentFrame)
 Layout.Padding = UDim.new(0, 6)
 Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- Button Creator
 local function CreateButton(name, order, callback)
     local btn = Instance.new("TextButton", ContentFrame)
     btn.Size = UDim2.new(0.9, 0, 0, 42)
@@ -94,55 +79,39 @@ local function CreateButton(name, order, callback)
     end)
 end
 
--- [[ 3. CORE LOGIC ]] --
+-- [[ 2. CORE LOGIC ]] --
 
-local function GetNearestEnemy()
-    local target = nil
-    local dist = 1000
-    local folder = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
-    if folder then
-        for _, v in pairs(folder:GetChildren()) do
-            if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
-                local mag = (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                if mag < dist then
-                    dist = mag
-                    target = v
-                end
-            end
-        end
-    end
-    return target
-end
-
--- A. Fast Auto Attack (Improved)
+-- A. Auto Attack (Metode Click)
 CreateButton("Auto Attack", 1, function(state)
     _G.AutoAttack = state
     task.spawn(function()
-        local remote = GetAttackRemote()
         while _G.AutoAttack do
             pcall(function()
-                local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                if tool and remote then
-                    tool:Activate()
-                    remote:FireServer(0.1) -- Argumen standar hit
+                if LocalPlayer.Character:FindFirstChildOfClass("Tool") then
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton1(Vector2.new(850, 420))
                 end
             end)
-            task.wait(0.05) -- Speed ditingkatkan (aman)
+            task.wait(0.01)
         end
     end)
 end)
 
--- B. Big Hitbox (Attack Range)
+-- B. Attack Range (Force Resize Handle)
 CreateButton("Attack Range", 2, function(state)
     _G.Range = state
     task.spawn(function()
         while _G.Range do
             pcall(function()
                 local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                if tool and tool:FindFirstChild("Handle") then
-                    tool.Handle.Size = Vector3.new(55, 55, 55)
-                    tool.Handle.Transparency = 0.8
-                    tool.Handle.CanCollide = false
+                if tool then
+                    for _, part in pairs(tool:GetDescendants()) do
+                        if part:IsA("BasePart") and (part.Name == "Handle" or part.Name == "Blade" or part.Name == "Part") then
+                            part.Size = Vector3.new(60, 60, 60)
+                            part.Transparency = 0.8
+                            part.CanCollide = false
+                        end
+                    end
                 end
             end)
             task.wait(1)
@@ -150,44 +119,55 @@ CreateButton("Attack Range", 2, function(state)
     end)
 end)
 
--- C. Fly Above NPC (Stability Fix)
+-- C. Fly Above NPC (Tinggi 12 + Anti Gravity)
 CreateButton("Fly Above NPC", 3, function(state)
     _G.Fly = state
     task.spawn(function()
         while _G.Fly do
             pcall(function()
-                local enemy = GetNearestEnemy()
-                if enemy and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    -- Mengunci posisi agar tidak goyang
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 8, 0)
+                local target = nil
+                local dist = 1000
+                local folder = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
+                for _, v in pairs(folder:GetChildren()) do
+                    if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
+                        local mag = (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                        if mag < dist then dist = mag target = v end
+                    end
+                end
+                
+                if target and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    -- Menghilangkan gravitasi agar melayang sempurna
+                    if not LocalPlayer.Character.HumanoidRootPart:FindFirstChild("YutaFlyForce") then
+                        local bv = Instance.new("BodyVelocity", LocalPlayer.Character.HumanoidRootPart)
+                        bv.Name = "YutaFlyForce"
+                        bv.Velocity = Vector3.new(0,0,0)
+                        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+                    end
+                    -- Teleport ke atas musuh (Tinggi 12)
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 12, 0)
                 end
             end)
             task.wait()
         end
+        -- Hapus gaya terbang jika fitur dimatikan
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart:FindFirstChild("YutaFlyForce") then
+            LocalPlayer.Character.HumanoidRootPart.YutaFlyForce:Destroy()
+        end
     end)
 end)
 
--- D. Auto Quest (Smart Selection)
-local function GetMyQuest()
-    local lv = LocalPlayer.Data.Level.Value
-    if lv < 10 then return "BanditQuest1", 1
-    elseif lv < 15 then return "MonkeyQuest1", 1
-    elseif lv < 30 then return "MonkeyQuest1", 2
-    else return "BanditQuest1", 1 end
-end
-
+-- D. Auto Quest (Smart)
 CreateButton("Auto Quest", 4, function(state)
     _G.AutoQuest = state
     task.spawn(function()
-        local comm = GetCommF()
+        local comm = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
         while _G.AutoQuest do
             if comm and (not LocalPlayer.PlayerGui.Main.Quest.Visible) then
-                local name, id = GetMyQuest()
-                comm:InvokeServer("StartQuest", name, id)
+                comm:InvokeServer("StartQuest", "BanditQuest1", 1)
             end
             task.wait(1.5)
         end
     end)
 end)
 
-print("Yuta Hub V3: Cross-checked and Optimized!")
+print("Yuta Hub V3: Range Fixed & Fly Height Updated!")
