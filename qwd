@@ -1,23 +1,26 @@
-local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hum = char:WaitForChild("Humanoid")
-local root = char:WaitForChild("HumanoidRootPart")
+local Player = game.Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Root = Character:WaitForChild("HumanoidRootPart")
+local Hum = Character:WaitForChild("Humanoid")
 
--- 1. Membuat karakter transparan (Visual Match)
-for _, v in pairs(char:GetDescendants()) do
-    if v:IsA("BasePart") or v:IsA("Decal") then
-        v.Transparency = 1
-        v.CanCollide = false
-    end
-end
+-- Tentukan seberapa dalam kamu mau masuk (5-7 studs sudah cukup aman)
+local Depth = 6 
 
--- 2. Mematikan sistem "Touch" (Bypass Seeker)
--- Ini gunanya supaya saat seeker menyentuhmu, game tidak mendeteksinya
-task.spawn(function()
-    while task.wait() do
-        hum:ChangeState(Enum.HumanoidStateType.Physics)
-        root.Velocity = Vector3.new(0, 0.01, 0) -- Menjaga agar tidak jatuh ke void
+-- 1. Matikan Tabrakan (Noclip) supaya tidak terpental saat di bawah tanah
+local connection
+connection = game:GetService("RunService").Stepped:Connect(function()
+    for _, v in pairs(Character:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.CanCollide = false
+        end
     end
 end)
 
-print("Gamepass Invis ditiru! Kamu transparan dan sulit ditangkap.")
+-- 2. Pindahkan posisi ke bawah
+Root.CFrame = Root.CFrame * CFrame.new(0, -Depth, 0)
+
+-- 3. Mengatur Kamera agar tetap nyaman
+-- (Opsional: Kamu bisa tetap gerak pakai WASD seperti biasa)
+Hum.HipHeight = -Depth -- Mengatur tinggi karakter secara teknis
+
+print("Karakter sekarang berada di bawah tanah! Seeker tidak bisa melihatmu.")
