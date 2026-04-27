@@ -1,13 +1,55 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
 local Mouse = LocalPlayer:GetMouse()
+local Camera = workspace.CurrentCamera
 
 -- KONFIGURASI
-local Smoothness = 0.1 -- Kecepatan kunci (0.1 sangat cepat)
-local FOV_Radius = 250 -- Jarak maksimal mouse ke musuh agar terkunci
+local _G.SilentAimEnabled = true
+local _G.AimPart = "Head" -- Bisa ganti "HumanoidRootPart"
+local _G.FieldOfView = 300 -- Radius kuncian
 
--- [[ 1. ESP NORMAL (STABIL) ]] --
+-- [[ 1. LOGIKA SILENT AIM (HOOK MOUSE) ]] --
+local function getClosestPlayer()
+    local target = nil
+    local shortestDistance = _G.FieldOfView
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(_G.AimPart) then
+            local pos, onScreen = Camera:WorldToViewportPoint(player.Character[_G.AimPart].Position)
+            if onScreen then
+                local distance = (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+                if distance < shortestDistance then
+                    target = player.Character[_G.AimPart]
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+    return target
+end
+
+-- Hook Metatable (Ini inti dari Silent Aim agar peluru belok)
+local mt = getrawmetatable(game)
+local oldNamecall = mt.__namecall
+setreadonly(mt, false)
+
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+
+    if _G.SilentAimEnabled and method == "FindPartOnRayWithIgnoreList" or method == "Raycast" then
+        local target = getClosestPlayer()
+        if target then
+            -- Membelokkan arah tembakan ke target
+            return oldNamecall(self, Ray.new(Camera.CFrame.Position, (target.Position - Camera.CFrame.Position).Unit * 1000), args[2])
+        end
+    end
+    return oldNamecall(self, ...)
+end)
+
+setreadonly(mt, true)
+
+-- [[ 2. ESP STABIL (LOGIKA ASLI KAMU) ]] --
 local function buatESP(player)
     player.CharacterAdded:Connect(function(char)
         if player == LocalPlayer then return end
@@ -29,36 +71,6 @@ local function buatESP(player)
     end)
 end
 
--- [[ 2. LOGIKA AUTO AIM (SAAT NEMBAK) ]] --
-local function getClosestPlayer()
-    local target = nil
-    local shortestDistance = FOV_Radius
-
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-            local pos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position)
-            if onScreen then
-                local distance = (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
-                if distance < shortestDistance then
-                    target = player.Character.Head
-                    shortestDistance = distance
-                end
-            end
-        end
-    end
-    return target
-end
-
--- Deteksi saat nembak (Klik Kiri)
-Mouse.Button1Down:Connect(function()
-    local target = getClosestPlayer()
-    if target then
-        -- Mengunci kamera ke arah musuh secara instan saat nembak
-        Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
-    end
-end)
-
--- Jalankan ESP awal
 for _, p in pairs(Players:GetPlayers()) do
     if p.Character then buatESP(p) end
     buatESP(p)
