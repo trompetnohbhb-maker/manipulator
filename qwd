@@ -7,12 +7,13 @@ local RunService = game:GetService("RunService")
 _G.AutoAttack = false
 _G.AttackRange = false
 _G.FlyAbove = false
+_G.AutoQuest = false
 
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-if PlayerGui:FindFirstChild("YutaHub_V4") then PlayerGui.YutaHub_V4:Destroy() end
+if PlayerGui:FindFirstChild("YutaHub_V5") then PlayerGui.YutaHub_V5:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui", PlayerGui)
-ScreenGui.Name = "YutaHub_V4"
+ScreenGui.Name = "YutaHub_V5"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
@@ -23,14 +24,14 @@ Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
 local Header = Instance.new("TextLabel", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 40)
-Header.Text = "YUTA HUB 4" -- UPDATE NAMA
+Header.Text = "YUTA HUB 5" -- NAMA UPDATE
 Header.TextColor3 = Color3.fromRGB(255, 255, 255)
 Header.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 Header.Font = Enum.Font.SourceSansBold
 Header.TextSize = 16
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 10)
 
--- Drag System
+-- SISTEM GESER (DRAG)
 local dragging, dragStart, startPos
 Header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -65,46 +66,44 @@ local function CreateButton(name, order, callback)
     end)
 end
 
--- [[ 2. SUPER FAST ATTACK ENGINE ]] --
-local function GetEnemy()
-    local folder = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
-    for _, v in pairs(folder:GetChildren()) do
-        if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < 100 then
-            return v
-        end
-    end
-end
-
--- Fungsi Serang Tanpa Cooldown
-local function AttackNoCooldown()
+-- [[ 2. BLADE ATTACK LOGIC (BYPASS METHOD) ]] --
+local function FastAttack()
     pcall(function()
-        local AttackRE = ReplicatedStorage.Modules.Net:FindFirstChild("RE/Attack") or ReplicatedStorage.Modules.Net:FindFirstChild("Attack")
-        local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-        if Tool and AttackRE then
-            -- Spam FireServer berkali-kali untuk Super Attack
-            AttackRE:FireServer(0.1)
-            AttackRE:FireServer(0.1)
-            AttackRE:FireServer(0.1) -- Stack 3 hit sekaligus
-            
-            -- Memicu animasi internal agar tidak dicurigai
-            if Tool:FindFirstChild("Attack") then
-                Tool.Attack:Fire()
+        -- Mencari musuh terdekat untuk dipukul
+        local folder = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
+        local target = nil
+        for _, v in pairs(folder:GetChildren()) do
+            if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < 100 then
+                target = v
+                break
             end
+        end
+
+        if target then
+            -- Bypass: Panggil modul serangan pedang secara langsung
+            local Net = ReplicatedStorage.Modules.Net:FindFirstChild("RE/Attack") or ReplicatedStorage.Modules.Net:FindFirstChild("Attack")
+            if Net then
+                -- Kirim serangan beruntun (Super Fast)
+                Net:FireServer(0.1)
+                Net:FireServer(0.1)
+            end
+            -- Memicu animasi senjata (Dibutuhkan agar server mencatat Hit)
+            local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+            if tool then tool:Activate() end
         end
     end)
 end
 
--- [[ 3. FITUR ]] --
+-- [[ 3. FITUR UTAMA ]] --
 
--- SUPER AUTO ATTACK (Fast Method)
+-- SUPER FAST ATTACK
 CreateButton("Auto Attack", 1, function(state)
     _G.AutoAttack = state
     task.spawn(function()
         while _G.AutoAttack do
-            -- Menggunakan Heartbeat agar hit teregistrasi sangat cepat
-            RunService.Heartbeat:Wait()
+            RunService.RenderStepped:Wait() -- Kecepatan maksimal sesuai FPS
             if _G.AutoAttack then
-                AttackNoCooldown()
+                FastAttack()
             end
         end
     end)
@@ -119,7 +118,7 @@ CreateButton("Attack Range", 2, function(state)
             pcall(function()
                 local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
                 if tool and tool:FindFirstChild("Handle") then
-                    tool.Handle.Size = Vector3.new(80, 80, 80)
+                    tool.Handle.Size = Vector3.new(65, 65, 65)
                     tool.Handle.Transparency = 0.8
                     tool.Handle.CanCollide = false
                 end
@@ -128,16 +127,26 @@ CreateButton("Attack Range", 2, function(state)
     end)
 end)
 
--- FLY ABOVE NPC (Tinggi 8 Unit biar hit pas)
+-- FLY ABOVE NPC (Tinggi 8 - Jarak Ideal Hitbox)
 CreateButton("Fly Above NPC", 3, function(state)
     _G.FlyAbove = state
     task.spawn(function()
         while _G.FlyAbove do
             RunService.Heartbeat:Wait()
             pcall(function()
-                local Enemy = GetEnemy()
-                if Enemy and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = Enemy.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0)
+                -- Cari musuh terdekat
+                local target = nil
+                local dist = 500
+                local folder = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
+                for _, v in pairs(folder:GetChildren()) do
+                    if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                        local mag = (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                        if mag < dist then dist = mag; target = v end
+                    end
+                end
+                
+                if target and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 8, 0)
                 end
             end)
         end
