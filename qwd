@@ -1,113 +1,58 @@
--- [[ UNIVERSAL TABBED MENU ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
 
-local Settings = {Aim = false, Esp = false, Fly = false, FlySpeed = 50, Smooth = 0.15, FOV = 200}
+local function buatESP(player)
+    local function applyESP(character)
+        if player == LocalPlayer then return end
+        
+        -- 1. Efek Highlight (Melihat Badan Tembus Dinding)
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "ESPHighlight"
+        highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Merah
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255) -- Putih
+        highlight.FillTransparency = 0.5
+        highlight.Parent = character
 
--- [[ UI CONSTRUCTION ]] --
-local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "TabMenu"
-ScreenGui.ResetOnSpawn = false
+        -- 2. Tag Nama & Jarak
+        local head = character:WaitForChild("Head", 5)
+        if head then
+            local billboard = Instance.new("BillboardGui")
+            billboard.Name = "ESPTag"
+            billboard.Size = UDim2.new(0, 100, 0, 50)
+            billboard.StudsOffset = Vector3.new(0, 2, 0)
+            billboard.AlwaysOnTop = true
+            billboard.Parent = head
 
--- Header (Satu baris utama)
-local Header = Instance.new("Frame", ScreenGui)
-Header.Size = UDim2.new(0, 160, 0, 30)
-Header.Position = UDim2.new(0.1, 0, 0.1, 0)
-Header.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Header.Active = true
-Header.Draggable = true
+            local label = Instance.new("TextLabel")
+            label.BackgroundTransparency = 1
+            label.Size = UDim2.new(1, 0, 1, 0)
+            label.TextColor3 = Color3.fromRGB(255, 255, 0) -- Kuning
+            label.TextStrokeTransparency = 0
+            label.TextSize = 14
+            label.Parent = billboard
 
-local Title = Instance.new("TextButton", Header)
-Title.Size = UDim2.new(1, 0, 1, 0)
-Title.Text = "CHEAT MENU (Click)"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.BackgroundTransparency = 1
-
--- Container Menu (Isi yang bisa muncul/hilang)
-local Content = Instance.new("Frame", Header)
-Content.Size = UDim2.new(1, 0, 0, 140)
-Content.Position = UDim2.new(0, 0, 1, 0)
-Content.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Content.Visible = false -- Awalnya tertutup
-
-local UIList = Instance.new("UIListLayout", Content)
-UIList.SortOrder = Enum.SortOrder.LayoutOrder
-UIList.Padding = UDim.new(0, 5)
-
--- Fungsi Buat Tombol
-local function CreateToggle(name, settingKey)
-    local btn = Instance.new("TextButton", Content)
-    btn.Size = UDim2.new(1, -10, 0, 30)
-    btn.Text = name .. ": OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    
-    btn.MouseButton1Click:Connect(function()
-        Settings[settingKey] = not Settings[settingKey]
-        btn.Text = name .. (Settings[settingKey] and ": ON" or ": OFF")
-        btn.BackgroundColor3 = Settings[settingKey] and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
-        if settingKey == "Fly" then ToggleFly(Settings.Fly) end
-    end)
-end
-
--- Tambah fitur ke menu
-CreateToggle("Auto Aim", "Aim")
-CreateToggle("ESP Player", "Esp")
-CreateToggle("Fly Hack", "Fly")
-
--- Klik Header untuk buka/tutup menu
-Title.MouseButton1Click:Connect(function()
-    Content.Visible = not Content.Visible
-end)
-
--- [[ CORE LOGIC (Fly, Aim, ESP) ]] --
-local bv, bg
-function ToggleFly(state)
-    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    if state then
-        bg = Instance.new("BodyGyro", root); bg.MaxTorque = Vector3.new(45e5, 45e5, 45e5); bg.P = 9e3
-        bv = Instance.new("BodyVelocity", root); bv.MaxForce = Vector3.new(45e5, 45e5, 45e5)
-        LocalPlayer.Character.Humanoid.PlatformStand = true
-    else
-        if bv then bv:Destroy() end; if bg then bg:Destroy() end
-        LocalPlayer.Character.Humanoid.PlatformStand = false
-    end
-end
-
-RunService.RenderStepped:Connect(function()
-    -- ESP
-    if Settings.Esp then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character and not p.Character:FindFirstChild("ESPH") then
-                local h = Instance.new("Highlight", p.Character); h.Name = "ESPH"; h.FillColor = Color3.fromRGB(255, 0, 0)
-            end
-        end
-    end
-    -- Fly
-    if Settings.Fly and bv and bg then
-        bg.CFrame = Camera.CFrame
-        local dir = Vector3.new(0,0,0)
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + Camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - Camera.CFrame.LookVector end
-        bv.Velocity = dir * Settings.FlySpeed
-    end
-    -- Aim (Right Click)
-    if Settings.Aim and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-        local target = nil; local dist = Settings.FOV
-        for _, v in pairs(Players:GetPlayers()) do
-            if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") then
-                local pos, onScreen = Camera:WorldToViewportPoint(v.Character.Head.Position)
-                if onScreen then
-                    local mag = (Vector2.new(pos.X, pos.Y) - UserInputService:GetMouseLocation()).Magnitude
-                    if mag < dist then target = v.Character.Head; dist = mag end
+            -- Update Jarak
+            local connection
+            connection = RunService.RenderStepped:Connect(function()
+                if character.Parent and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local dist = (character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                    label.Text = player.Name .. "\n[" .. math.floor(dist) .. "m]"
+                else
+                    connection:Disconnect()
                 end
-            end
+            end)
         end
-        if target then Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, target.Position), Settings.Smooth) end
     end
-end)
 
+    if player.Character then applyESP(player.Character) end
+    player.CharacterAdded:Connect(applyESP)
+end
+
+-- Jalankan untuk semua pemain
+for _, p in pairs(Players:GetPlayers()) do
+    buatESP(p)
+end
+Players.PlayerAdded:Connect(buatESP)
+
+print("ESP Player Active!")
