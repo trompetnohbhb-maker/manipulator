@@ -1,74 +1,48 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local UserInputService = game:GetService("UserInputService")
-local _G.InvisActive = false
 
--- [[ UI TOMBOL ON/OFF DRAGGABLE ]] --
+-- [[ 1. BUAT UI TOMBOL SEDERHANA ]] --
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "InvisMenu"
+ScreenGui.Name = "InvisSimple"
 ScreenGui.ResetOnSpawn = false
 
 local Button = Instance.new("TextButton", ScreenGui)
-Button.Size = UDim2.new(0, 120, 0, 40)
-Button.Position = UDim2.new(0.5, -60, 0.2, 0)
-Button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Button.Size = UDim2.new(0, 100, 0, 40)
+Button.Position = UDim2.new(0, 10, 0.5, 0) -- Di tengah kiri layar
+Button.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 Button.Text = "INVIS: OFF"
 Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-Button.Font = Enum.Font.SourceSansBold
-Button.TextSize = 16
+Button.BorderSizePixel = 2
 
--- Fitur Drag Manual
-local dragging, dragInput, dragStart, startPos
-Button.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true; dragStart = input.Position; startPos = Button.Position
-	end
-end)
-UserInputService.InputChanged:Connect(function(input)
-	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-		local delta = input.Position - dragStart
-		Button.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-	end
-end)
-UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = false
-	end
-end)
+local invisAktif = false
 
--- [[ LOGIKA INVISIBLE ]] --
-local function setInvis(state)
-	local char = LocalPlayer.Character
-	if not char then return end
-	
-	local transparency = state and 1 or 0
-	
-	for _, v in pairs(char:GetDescendants()) do
-		if v:IsA("BasePart") or v:IsA("Decal") then
-			if v.Name ~= "HumanoidRootPart" then
-				v.Transparency = transparency
-			end
-		end
-	end
+-- [[ 2. LOGIKA INVISIBLE ]] --
+local function buatInvis(state)
+    local char = LocalPlayer.Character
+    if not char then return end
     
-    -- Menghilangkan Tag Nama di atas kepala (jika ada)
-    local head = char:FindFirstChild("Head")
-    if head then
-        for _, v in pairs(head:GetDescendants()) do
-            if v:IsA("BillboardGui") then v.Enabled = not state end
+    local nilaiTransparansi = state and 1 or 0
+    
+    for _, v in pairs(char:GetDescendants()) do
+        if v:IsA("BasePart") or v:IsA("Decal") then
+            -- HumanoidRootPart harus tetap ada supaya tidak mati
+            if v.Name ~= "HumanoidRootPart" then
+                v.Transparency = nilaiTransparansi
+            end
         end
     end
 end
 
+-- Klik Tombol
 Button.MouseButton1Click:Connect(function()
-	_G.InvisActive = not _G.InvisActive
-	Button.Text = _G.InvisActive and "INVIS: ON" or "INVIS: OFF"
-	Button.BackgroundColor3 = _G.InvisActive and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
-	setInvis(_G.InvisActive)
+    invisAktif = not invisAktif
+    Button.Text = invisAktif and "INVIS: ON" or "INVIS: OFF"
+    Button.BackgroundColor3 = invisAktif and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+    buatInvis(invisAktif)
 end)
 
--- Pastikan tetap invis kalau respawn
+-- Biar tetep invis pas respawn
 LocalPlayer.CharacterAdded:Connect(function()
-	task.wait(1)
-	if _G.InvisActive then setInvis(true) end
+    task.wait(1)
+    if invisAktif then buatInvis(true) end
 end)
