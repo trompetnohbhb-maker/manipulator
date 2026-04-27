@@ -4,49 +4,66 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
 
--- [[ 1. WADAH UTAMA ]] --
-local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "YutaHub_PastiMuncul"
+-- [[ 1. PEMBERSIHAN & SETUP UI ]] --
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+if PlayerGui:FindFirstChild("YutaHub_Final") then
+    PlayerGui.YutaHub_Final:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui", PlayerGui)
+ScreenGui.Name = "YutaHub_Final"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 160, 0, 250) -- Ukuran ditambah dikit biar muat
-MainFrame.Position = UDim2.new(0.5, -80, 0.4, 0) -- Muncul di tengah
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Size = UDim2.new(0, 160, 0, 260)
+MainFrame.Position = UDim2.new(0.5, -80, 0.4, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true -- Pakai fitur bawaan roblox aja biar gk ribet
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
-local UICorner = Instance.new("UICorner", MainFrame)
-UICorner.CornerRadius = UDim.new(0, 8)
+-- Header (Handle Drag)
+local Header = Instance.new("TextLabel", MainFrame)
+Header.Size = UDim2.new(1, 0, 0, 40)
+Header.Text = "YUTA HUB V4"
+Header.TextColor3 = Color3.fromRGB(255, 255, 255)
+Header.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+Header.Font = Enum.Font.SourceSansBold
+Header.TextSize = 16
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 10)
 
--- Judul
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 35)
-Title.Text = "YUTA HUB"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 14
-Instance.new("UICorner", Title)
+-- SISTEM DRAG (Gak bakal rusak)
+local dragging, dragStart, startPos
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = MainFrame.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+end)
 
--- Wadah Tombol (Pake Frame biar rapi)
+-- Wadah Tombol
 local ButtonHolder = Instance.new("Frame", MainFrame)
-ButtonHolder.Size = UDim2.new(1, 0, 1, -40)
-ButtonHolder.Position = UDim2.new(0, 0, 0, 40)
+ButtonHolder.Size = UDim2.new(1, 0, 1, -45)
+ButtonHolder.Position = UDim2.new(0, 0, 0, 45)
 ButtonHolder.BackgroundTransparency = 1
-
 local Layout = Instance.new("UIListLayout", ButtonHolder)
-Layout.Padding = UDim.new(0, 5)
-Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+Layout.Padding = UDim.new(0, 7); Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 -- [[ 2. FUNGSI TOMBOL ]] --
 local function CreateButton(name, order, callback)
     local btn = Instance.new("TextButton", ButtonHolder)
-    btn.Size = UDim2.new(0.9, 0, 0, 35)
+    btn.Size = UDim2.new(0.9, 0, 0, 40)
     btn.LayoutOrder = order
     btn.Text = name .. ": OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 13
@@ -56,20 +73,19 @@ local function CreateButton(name, order, callback)
     btn.MouseButton1Click:Connect(function()
         active = not active
         btn.Text = name .. (active and ": ON" or ": OFF")
-        btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
-        task.spawn(function()
-            callback(active)
-        end)
+        btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(45, 45, 45)
+        task.spawn(function() callback(active) end)
     end)
 end
 
--- [[ 3. ISI FITUR (OTAKNYA) ]] --
+-- [[ 3. LOGIKA FITUR (PASTI JALAN) ]] --
 
--- AUTO ATTACK (Click Tanpa Delay)
+-- AUTO ATTACK
+_G.AA = false
 CreateButton("Auto Attack", 1, function(state)
     _G.AA = state
     while _G.AA do
-        game:GetService("RunService").RenderStepped:Wait()
+        task.wait() 
         pcall(function()
             if LocalPlayer.Character:FindFirstChildOfClass("Tool") then
                 VirtualUser:CaptureController()
@@ -79,13 +95,14 @@ CreateButton("Auto Attack", 1, function(state)
     end
 end)
 
--- ATTACK RANGE (Mob Pull)
+-- ATTACK RANGE (MOB PULL)
+_G.Range = false
 CreateButton("Attack Range", 2, function(state)
     _G.Range = state
     while _G.Range do
         task.wait()
         pcall(function()
-            if _G.AA then -- Hanya narik pas lagi nyerang
+            if _G.AA then
                 for _, v in pairs(workspace.Enemies:GetChildren()) do
                     if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
                         v.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, -10, 0)
@@ -98,6 +115,7 @@ CreateButton("Attack Range", 2, function(state)
 end)
 
 -- FLY ABOVE NPC (Tinggi 25)
+_G.Fly = false
 CreateButton("Fly Above NPC", 3, function(state)
     _G.Fly = state
     while _G.Fly do
@@ -114,10 +132,11 @@ CreateButton("Fly Above NPC", 3, function(state)
 end)
 
 -- AUTO QUEST
+_G.Quest = false
 CreateButton("Auto Quest", 4, function(state)
     _G.Quest = state
     while _G.Quest do
-        task.wait(1.5)
+        task.wait(1)
         pcall(function()
             local comm = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
             if comm and not LocalPlayer.PlayerGui.Main.Quest.Visible then
@@ -127,4 +146,4 @@ CreateButton("Auto Quest", 4, function(state)
     end
 end)
 
-print("Yuta Hub: Muncul & Bisa di-drag!")
+print("Yuta Hub V4 FIXED!")
