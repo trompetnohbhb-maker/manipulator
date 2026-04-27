@@ -3,40 +3,37 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- Membuat Folder untuk Tracers agar rapi
-local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "RonixESP_Tracers"
+-- Wadah buat Garis agar tidak hilang
+local TracerGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+TracerGui.Name = "PureTracers"
+TracerGui.ResetOnSpawn = false
 
 local function buatESP(player)
     player.CharacterAdded:Connect(function(char)
         if player == LocalPlayer then return end
         
-        -- Bypass Asset Not Found
-        local root = char:WaitForChild("HumanoidRootPart", 15) 
+        local root = char:WaitForChild("HumanoidRootPart", 10) 
         if root then
-            -- 1. KOTAK MERAH (Paling Stabil)
+            -- 1. KOTAK (Logika Asli)
             if root:FindFirstChild("KotakESP") then root.KotakESP:Destroy() end
             local gui = Instance.new("BillboardGui", root)
             gui.Name = "KotakESP"
             gui.AlwaysOnTop = true
             gui.Size = UDim2.new(4, 0, 5.5, 0)
-            
             local frame = Instance.new("Frame", gui)
             frame.Size = UDim2.new(1, 0, 1, 0)
             frame.BackgroundTransparency = 0.6
             frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-            
             local stroke = Instance.new("UIStroke", frame)
             stroke.Thickness = 2
             stroke.Color = Color3.fromRGB(255, 255, 255)
 
             -- 2. GARIS (Tracers)
-            local tracerLine = Instance.new("Frame", ScreenGui)
+            local tracerLine = Instance.new("Frame", TracerGui)
             tracerLine.BorderSizePixel = 0
             tracerLine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
             tracerLine.AnchorPoint = Vector2.new(0.5, 0.5)
 
-            -- Update Garis setiap Frame (Ronix Windows Support)
             local connection
             connection = RunService.RenderStepped:Connect(function()
                 if char.Parent and root and player.Parent then
@@ -55,14 +52,13 @@ local function buatESP(player)
                     end
                 else
                     tracerLine:Destroy()
-                    connection:Disconnect()
+                    if connection then connection:Disconnect() end
                 end
             end)
         end
     end)
 end
 
--- Menjalankan untuk semua pemain
 for _, p in pairs(Players:GetPlayers()) do
     if p.Character then task.spawn(function() buatESP(p) end) end
     buatESP(p)
