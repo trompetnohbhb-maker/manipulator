@@ -2,9 +2,8 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local VirtualUser = game:GetService("VirtualUser")
 
--- [[ 1. RESET STATUS & UI ]] --
+-- [[ 1. RESET & SETUP UI ]] --
 _G.AA = false
 _G.Range = false
 _G.Fly = false
@@ -13,34 +12,6 @@ _G.Quest = false
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 if PlayerGui:FindFirstChild("YutaHub_V1") then PlayerGui.YutaHub_V1:Destroy() end
 
--- [[ 2. DATA QUEST AUTO LEVEL ]] --
-local function GetQuestData()
-    local lv = LocalPlayer.Data.Level.Value
-    if lv < 10 then return "BanditQuest1", 1
-    elseif lv < 15 then return "MonkeyQuest1", 1
-    elseif lv < 30 then return "MonkeyQuest1", 2
-    elseif lv < 40 then return "PirateIslandQuest", 1
-    elseif lv < 60 then return "PirateIslandQuest", 2
-    elseif lv < 75 then return "DesertIslandQuest", 1
-    elseif lv < 90 then return "DesertIslandQuest", 2
-    elseif lv < 120 then return "SnowIslandQuest", 1
-    elseif lv < 150 then return "SnowIslandQuest", 2
-    elseif lv < 175 then return "MarineTreeQuest", 1
-    elseif lv < 190 then return "MarineTreeQuest", 2
-    elseif lv < 210 then return "SkyQuest", 1
-    elseif lv < 250 then return "SkyQuest", 2
-    elseif lv < 275 then return "PrisonQuest", 1
-    elseif lv < 300 then return "PrisonQuest", 2
-    elseif lv < 330 then return "MagmaQuest", 1
-    elseif lv < 425 then return "MagmaQuest", 2
-    elseif lv < 450 then return "FishmanQuest", 1
-    elseif lv < 575 then return "FishmanQuest", 2
-    elseif lv < 625 then return "SkyExp1Quest", 1
-    elseif lv < 700 then return "SkyExp1Quest", 2
-    else return "BanditQuest1", 1 end
-end
-
--- [[ 3. SETUP UI UTAMA ]] --
 local ScreenGui = Instance.new("ScreenGui", PlayerGui)
 ScreenGui.Name = "YutaHub_V1"
 ScreenGui.ResetOnSpawn = false
@@ -86,32 +57,68 @@ local function CreateButton(name, order, callback)
     btn.Size = UDim2.new(0.9, 0, 0, 40); btn.LayoutOrder = order; btn.Text = name .. ": OFF"
     btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); btn.TextColor3 = Color3.fromRGB(255, 255, 255); btn.Font = Enum.Font.SourceSansBold
     Instance.new("UICorner", btn)
-
     local active = false
     btn.MouseButton1Click:Connect(function()
         active = not active
         btn.Text = name .. (active and ": ON" or ": OFF")
         btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(40, 40, 40)
-        -- Membungkus callback dalam task.spawn agar tidak macet/nil
-        task.spawn(function()
-            callback(active)
-        end)
+        task.spawn(function() callback(active) end)
     end)
 end
 
--- [[ 4. FITUR UTAMA ]] --
+-- [[ 2. DATA QUEST ]] --
+local function GetQuestData()
+    local lv = LocalPlayer.Data.Level.Value
+    if lv < 10 then return "BanditQuest1", 1
+    elseif lv < 15 then return "MonkeyQuest1", 1
+    elseif lv < 30 then return "MonkeyQuest1", 2
+    elseif lv < 40 then return "PirateIslandQuest", 1
+    elseif lv < 60 then return "PirateIslandQuest", 2
+    elseif lv < 75 then return "DesertIslandQuest", 1
+    elseif lv < 90 then return "DesertIslandQuest", 2
+    elseif lv < 120 then return "SnowIslandQuest", 1
+    elseif lv < 150 then return "SnowIslandQuest", 2
+    elseif lv < 175 then return "MarineTreeQuest", 1
+    elseif lv < 190 then return "MarineTreeQuest", 2
+    elseif lv < 210 then return "SkyQuest", 1
+    elseif lv < 250 then return "SkyQuest", 2
+    elseif lv < 275 then return "PrisonQuest", 1
+    elseif lv < 300 then return "PrisonQuest", 2
+    elseif lv < 330 then return "MagmaQuest", 1
+    elseif lv < 425 then return "MagmaQuest", 2
+    elseif lv < 450 then return "FishmanQuest", 1
+    elseif lv < 575 then return "FishmanQuest", 2
+    elseif lv < 625 then return "SkyExp1Quest", 1
+    elseif lv < 700 then return "SkyExp1Quest", 2
+    else return "BanditQuest1", 1 end
+end
 
--- AUTO ATTACK (Fast Clicker)
+-- [[ 3. LOGIKA FAST ATTACK (SIGMA HUB METHOD) ]] --
+local function SigmaAttack()
+    pcall(function()
+        local Net = ReplicatedStorage.Modules.Net:FindFirstChild("RE/Attack") or ReplicatedStorage.Modules.Net:FindFirstChild("Attack")
+        local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        if Tool and Net then
+            -- SIGMA METHOD: Stacking 2 hit dengan durasi registrasi hit 0.15 detik
+            Net:FireServer(0.15) 
+            Net:FireServer(0.15)
+            
+            -- Bypass: Memicu animasi internal tool tanpa animasi tangan (Silent)
+            if Tool:FindFirstChild("Attack") then
+                Tool.Attack:Fire()
+            end
+        end
+    end)
+end
+
+-- [[ 4. CORE FEATURES ]] --
+
+-- AUTO ATTACK
 CreateButton("Auto Attack", 1, function(state)
     _G.AA = state
     while _G.AA do
-        RunService.RenderStepped:Wait()
-        pcall(function()
-            if LocalPlayer.Character:FindFirstChildOfClass("Tool") then
-                VirtualUser:CaptureController()
-                VirtualUser:ClickButton1(Vector2.new(0,0))
-            end
-        end)
+        RunService.RenderStepped:Wait() 
+        if _G.AA then SigmaAttack() end
     end
 end)
 
@@ -135,7 +142,7 @@ CreateButton("Attack Range", 2, function(state)
     end
 end)
 
--- FLY ABOVE NPC (Ketinggian 10)
+-- FLY ABOVE NPC (Tinggi 10)
 CreateButton("Fly Above NPC", 3, function(state)
     _G.Fly = state
     while _G.Fly do
