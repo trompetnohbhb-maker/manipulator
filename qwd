@@ -1,70 +1,80 @@
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
-
--- Variabel kontrol
-local espAktif = true
-local tombolKeybind = Enum.KeyCode.P -- Ganti "P" sesuai keinginan
 
 local function buatESP(player)
     player.CharacterAdded:Connect(function(char)
         if player == LocalPlayer then return end
         
-        -- Menunggu part muncul agar tidak "Asset not found"
+        -- Bypass "Asset not found" dengan menunggu part muncul
         local root = char:WaitForChild("HumanoidRootPart", 10) 
         
         if root then
+            -- Hapus jika sudah ada agar tidak double
             if root:FindFirstChild("KotakESP") then root.KotakESP:Destroy() end
 
+            -- 1. Membuat Kotak
             local gui = Instance.new("BillboardGui")
             gui.Name = "KotakESP"
             gui.AlwaysOnTop = true
             gui.Size = UDim2.new(4, 0, 5.5, 0)
             gui.Adornee = root
-            gui.Enabled = espAktif -- Tergantung status ON/OFF
             gui.Parent = root
 
             local frame = Instance.new("Frame")
             frame.Size = UDim2.new(1, 0, 1, 0)
             frame.BackgroundTransparency = 0.6
-            frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+            frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Warna MERAH
             frame.BorderSizePixel = 0
             frame.Parent = gui
             
+            -- Tambah garis tepi putih
             local stroke = Instance.new("UIStroke")
             stroke.Thickness = 2
             stroke.Color = Color3.fromRGB(255, 255, 255)
             stroke.Parent = frame
+
+            -- 2. Tambah Nama Pemain
+            local nama = Instance.new("TextLabel")
+            nama.Size = UDim2.new(1, 0, 0.2, 0)
+            nama.Position = UDim2.new(0, 0, -0.25, 0) -- Di atas kotak
+            nama.BackgroundTransparency = 1
+            nama.Text = player.Name
+            nama.TextColor3 = Color3.fromRGB(255, 255, 255)
+            nama.TextStrokeTransparency = 0
+            nama.TextScaled = true
+            nama.Parent = gui
         end
     end)
 end
 
--- Fungsi Keybind untuk ON/OFF
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == tombolKeybind then
-        espAktif = not espAktif
-        -- Update semua ESP yang sudah muncul di map
-        for _, p in pairs(Players:GetPlayers()) do
-            if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                local root = p.Character.HumanoidRootPart
-                local gui = root:FindFirstChild("KotakESP")
-                if gui then
-                    gui.Enabled = espAktif
-                end
-            end
-        end
-    end
-end)
-
--- Jalankan untuk pemain yang sudah ada di server
+-- Jalankan untuk semua pemain yang sudah ada di server
 for _, p in pairs(Players:GetPlayers()) do
     if p.Character then
         task.spawn(function()
-            local root = p.Character:WaitForChild("HumanoidRootPart", 5)
-            if root and p ~= LocalPlayer then
-                buatESP(p) -- Panggil fungsi utama agar logika sama
-                -- Trigger manual untuk karakter yang sudah ada
-                p.CharacterAdded:Connect(function() buatESP(p) end)
+            local char = p.Character
+            local root = char:WaitForChild("HumanoidRootPart", 5)
+            if root and p ~= LocalPlayer and not root:FindFirstChild("KotakESP") then
+                local gui = Instance.new("BillboardGui")
+                gui.Name = "KotakESP"
+                gui.AlwaysOnTop = true
+                gui.Size = UDim2.new(4, 0, 5.5, 0)
+                gui.Adornee = root
+                gui.Parent = root
+                
+                local frame = Instance.new("Frame")
+                frame.Size = UDim2.new(1, 0, 1, 0)
+                frame.BackgroundTransparency = 0.6
+                frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+                frame.Parent = gui
+
+                local nama = Instance.new("TextLabel")
+                nama.Size = UDim2.new(1, 0, 0.2, 0)
+                nama.Position = UDim2.new(0, 0, -0.25, 0)
+                nama.BackgroundTransparency = 1
+                nama.Text = p.Name
+                nama.TextColor3 = Color3.fromRGB(255, 255, 255)
+                nama.TextScaled = true
+                nama.Parent = gui
             end
         end)
     end
@@ -72,4 +82,3 @@ for _, p in pairs(Players:GetPlayers()) do
 end
 
 Players.PlayerAdded:Connect(buatESP)
-print("ESP Berhasil Dimuat! Tekan P untuk ON/OFF")
