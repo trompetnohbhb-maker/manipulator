@@ -139,7 +139,6 @@ CreateButton("Auto Attack", 1, function(state)
     end
 end)
 
-
 -- 2. ATTACK RANGE (Placeholder)
 CreateButton("Attack Range", 2, function(state) end)
 
@@ -160,7 +159,6 @@ CreateButton("Fly Above NPC", 3, function(state)
         end)
     end
 end)
-
 
 -- 4. AUTO QUEST (Placeholder)
 CreateButton("Auto Quest", 4, function(state) end)
