@@ -4,18 +4,38 @@ local UserInputService = game:GetService("UserInputService")
 
 -- Wadah Utama
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "RonixTabMenu"
+ScreenGui.Name = "RonixFixedMenu"
 ScreenGui.ResetOnSpawn = false
 
--- [[ 1. HEADER (1 LINE UTAMA) ]] --
+-- [[ 1. HEADER (SISTEM DRAG MANUAL) ]] --
 local Header = Instance.new("Frame", ScreenGui)
 Header.Size = UDim2.new(0, 180, 0, 35)
 Header.Position = UDim2.new(0.1, 0, 0.2, 0)
 Header.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 Header.BorderSizePixel = 0
-Header.Active = true
-Header.Draggable = true -- Fitur Draggable Ronix
 
+-- LOGIKA GESER (DRAG) MANUAL
+local dragging, dragInput, dragStart, startPos
+Header.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = Header.Position
+	end
+end)
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - dragStart
+		Header.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+
+-- Tombol Klik Header
 local Title = Instance.new("TextButton", Header)
 Title.Size = UDim2.new(1, 0, 1, 0)
 Title.Text = "BLOX FRUIT MENU ▼"
@@ -24,19 +44,18 @@ Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 14
 
--- [[ 2. CONTENT CONTAINER (MENU YG MUNCUL) ]] --
+-- [[ 2. CONTENT CONTAINER ]] --
 local Content = Instance.new("Frame", Header)
 Content.Size = UDim2.new(1, 0, 0, 160)
 Content.Position = UDim2.new(0, 0, 1, 0)
 Content.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Content.Visible = false -- Awalnya tertutup
+Content.Visible = false
 Content.BorderSizePixel = 0
 
 local UIList = Instance.new("UIListLayout", Content)
 UIList.SortOrder = Enum.SortOrder.LayoutOrder
 UIList.Padding = UDim.new(0, 5)
 
--- Fungsi Buat Tombol Fitur
 local function CreateFeature(name)
     local btn = Instance.new("TextButton", Content)
     btn.Size = UDim2.new(1, -10, 0, 35)
@@ -46,34 +65,25 @@ local function CreateFeature(name)
     btn.Font = Enum.Font.SourceSans
     btn.TextSize = 14
     
-    -- Efek Klik Sederhana
     local active = false
     btn.MouseButton1Click:Connect(function()
         active = not active
         btn.Text = name .. (active and ": ON" or ": OFF")
         btn.TextColor3 = active and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(200, 200, 200)
-        btn.BackgroundColor3 = active and Color3.fromRGB(55, 55, 55) or Color3.fromRGB(45, 45, 45)
-        print(name .. " diubah ke " .. tostring(active))
     end)
     
-    local corner = Instance.new("UICorner", btn)
-    corner.CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
 end
 
--- Menambahkan Menu Sesuai Request
 CreateFeature("Auto Attack")
 CreateFeature("Kill Aura")
 CreateFeature("Fly Above NPC")
 CreateFeature("Auto Quest")
 
--- [[ 3. LOGIKA KLIK HEADER UNTUK BUKA/TUTUP ]] --
 Title.MouseButton1Click:Connect(function()
     Content.Visible = not Content.Visible
     Title.Text = Content.Visible and "BLOX FRUIT MENU ▲" or "BLOX FRUIT MENU ▼"
 end)
 
--- Efek Mempercantik
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 6)
 Instance.new("UICorner", Content).CornerRadius = UDim.new(0, 6)
-
-print("UI Menu Ronix Berhasil Dimuat!")
