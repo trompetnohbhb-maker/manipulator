@@ -2,27 +2,31 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
--- Fungsi Utama Bikin Hantu
-local function makeGhost()
+-- Fungsi Invisible Total
+local function sailorInvis()
     local char = LocalPlayer.Character
     if char then
+        -- Menghapus semua part visual
         for _, v in pairs(char:GetDescendants()) do
-            -- Bikin semua bagian tubuh, baju 3D, dan aksesoris jadi transparan
-            if v:IsA("BasePart") or v:IsA("Decal") or v:IsA("MeshPart") then
+            if v:IsA("BasePart") or v:IsA("Decal") or v:IsA("MeshPart") or v:IsA("Texture") then
                 if v.Name ~= "HumanoidRootPart" then
                     v.Transparency = 1
                 end
             end
-            -- Hapus baju klasik biar bener-bener bersih
-            if v:IsA("Shirt") or v:IsA("Pants") or v:IsA("GraphicTShirt") then
+            -- Menghilangkan Armor, Jubah, dan Aksesoris One Piece
+            if v:IsA("Accessory") or v:IsA("Shirt") or v:IsA("Pants") or v:IsA("Clothing") then
                 v:Destroy()
+            end
+            -- Menghilangkan partikel buah iblis (efek aura)
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") then
+                v.Enabled = false
             end
         end
     end
 end
 
--- Jalankan terus-menerus (Anti-Reset Visual)
--- Biar kalo game maksa karakter muncul, script ini maksa ilangin lagi
-RunService.RenderStepped:Connect(makeGhost)
+-- Menjalankan secara berulang (Supaya tidak muncul lagi saat ganti item)
+local connection = RunService.RenderStepped:Connect(sailorInvis)
 
-print("Invis Berhasil! Kamu sekarang jadi hantu permanen.")
+-- Pesan untuk memastikan script jalan
+print("Sailor Piece Invisible Aktif!")
