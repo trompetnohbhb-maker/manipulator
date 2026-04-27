@@ -5,8 +5,9 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 -- KONFIGURASI
-local FOV_RADIUS = 600 -- Ukuran lingkaran
+local FOV_RADIUS = 200 
 local AIM_PART = "Head"
+local AIM_SMOOTHNESS = 1 -- Langsung nempel (Instan)
 
 -- [[ 1. BUAT LINGKARAN FOV PAKAI GUI (PASTI MUNCUL) ]] --
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
@@ -17,16 +18,15 @@ local FOVFrame = Instance.new("Frame", ScreenGui)
 FOVFrame.Name = "FOVCircle"
 FOVFrame.Size = UDim2.new(0, FOV_RADIUS * 2, 0, FOV_RADIUS * 2)
 FOVFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-FOVFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 FOVFrame.BackgroundTransparency = 1
 FOVFrame.BorderSizePixel = 0
 
 local UIStroke = Instance.new("UIStroke", FOVFrame)
 UIStroke.Thickness = 2
-UIStroke.Color = Color3.fromRGB(255, 255, 255) -- Warna Putih
+UIStroke.Color = Color3.fromRGB(255, 255, 255) 
 
 local UICorner = Instance.new("UICorner", FOVFrame)
-UICorner.CornerRadius = UDim.new(1, 0) -- Biar jadi lingkaran sempurna
+UICorner.CornerRadius = UDim.new(1, 0)
 
 -- [[ 2. ESP STABIL (LOGIKA ASLI KAMU) ]] --
 local function buatESP(player)
@@ -50,7 +50,7 @@ local function buatESP(player)
     end)
 end
 
--- [[ 3. LOGIKA INSTANT AIM ]] --
+-- [[ 3. LOGIKA AUTO-LOCK AIM ]] --
 local function getClosestPlayer()
     local target = nil
     local shortestDistance = FOV_RADIUS
@@ -74,16 +74,15 @@ local function getClosestPlayer()
 end
 
 RunService.RenderStepped:Connect(function()
-    -- Update posisi lingkaran ke tengah mouse
+    -- Update posisi lingkaran ke kursor
     local mousePos = UserInputService:GetMouseLocation()
     FOVFrame.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
 
-    -- Kunci Instan Pas Nembak (Klik Kiri)
-    if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-        local target = getClosestPlayer()
-        if target then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
-        end
+    -- AUTO-LOCK LOGIC (Selalu ngikutin musuh di FOV)
+    local target = getClosestPlayer()
+    if target then
+        -- Kamera dipaksa melihat ke target secara instan
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
     end
 end)
 
