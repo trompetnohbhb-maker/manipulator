@@ -4,7 +4,7 @@ local UserInputService = game:GetService("UserInputService")
 
 -- Wadah Utama
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "RonixBlox_Fixed"
+ScreenGui.Name = "RonixBlox_FinalFix"
 ScreenGui.ResetOnSpawn = false
 
 -- [[ 1. MAIN FRAME ]] --
@@ -19,55 +19,64 @@ MainFrame.ClipsDescendants = true
 local UICorner = Instance.new("UICorner", MainFrame)
 UICorner.CornerRadius = UDim.new(0, 8)
 
--- [[ 2. HEADER / TOMBOL DRAG & CLICK ]] --
-local TitleBtn = Instance.new("TextButton", MainFrame)
-TitleBtn.Size = UDim2.new(1, 0, 0, 35)
-TitleBtn.Text = "DRAG ME (Click)"
-TitleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-TitleBtn.Font = Enum.Font.SourceSansBold
-TitleBtn.TextSize = 14
-TitleBtn.AutoButtonColor = false
+-- [[ 2. HEADER (Hanya Visual & Handle Drag) ]] --
+local Header = Instance.new("TextLabel", MainFrame)
+Header.Size = UDim2.new(1, 0, 0, 35)
+Header.Text = "DRAG ME (Click)"
+Header.TextColor3 = Color3.fromRGB(255, 255, 255)
+Header.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+Header.Font = Enum.Font.SourceSansBold
+Header.TextSize = 14
+Header.Active = true -- Penting agar bisa menerima input
 
-local HeaderCorner = Instance.new("UICorner", TitleBtn)
+local HeaderCorner = Instance.new("UICorner", Header)
 HeaderCorner.CornerRadius = UDim.new(0, 8)
 
--- [[ 3. SISTEM DRAG (Ditaruh di TitleBtn) ]] --
+-- [[ 3. SISTEM DRAG & KLIK STABIL ]] --
 local dragging, dragInput, dragStart, startPos
+local dragDistance = 0 -- Untuk membedakan klik vs drag
 
-local function update(input)
-    local delta = input.Position - dragStart
-    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end
-
-TitleBtn.InputBegan:Connect(function(input)
+Header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
+        dragDistance = 0
         dragStart = input.Position
         startPos = MainFrame.Position
-        
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-TitleBtn.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
     end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        update(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        dragDistance = delta.Magnitude -- Hitung seberapa jauh digeser
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
 
--- [[ 4. ISI MENU & COLLAPSE ]] --
-local ContentFrame = Instance.new("Frame", MainFrame)
+-- Deteksi saat lepas
+local collapsed = false
+local ContentFrame = Instance.new("Frame", MainFrame) -- Kita buat dulu agar fungsi klik bisa akses
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if dragging then
+            dragging = false
+            -- JIKA DIGESER KURANG DARI 5 PIXEL, BERARTI ITU KLIK
+            if dragDistance < 5 then
+                collapsed = not collapsed
+                if collapsed then
+                    MainFrame:TweenSize(UDim2.new(0, 160, 0, 35), "Out", "Quad", 0.2, true)
+                    ContentFrame.Visible = false
+                else
+                    MainFrame:TweenSize(UDim2.new(0, 160, 0, 220), "Out", "Quad", 0.2, true)
+                    ContentFrame.Visible = true
+                end
+            end
+        end
+    end
+end)
+
+-- [[ 4. ISI MENU ]] --
 ContentFrame.Size = UDim2.new(1, 0, 1, -40)
 ContentFrame.Position = UDim2.new(0, 0, 0, 40)
 ContentFrame.BackgroundTransparency = 1
@@ -75,18 +84,6 @@ ContentFrame.BackgroundTransparency = 1
 local Layout = Instance.new("UIListLayout", ContentFrame)
 Layout.Padding = UDim.new(0, 5)
 Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
-local collapsed = false
-TitleBtn.MouseButton1Click:Connect(function()
-    collapsed = not collapsed
-    if collapsed then
-        MainFrame:TweenSize(UDim2.new(0, 160, 0, 35), "Out", "Quad", 0.3, true)
-        ContentFrame.Visible = false
-    else
-        MainFrame:TweenSize(UDim2.new(0, 160, 0, 220), "Out", "Quad", 0.3, true)
-        ContentFrame.Visible = true
-    end
-end)
 
 local function CreateButton(name, order, callback)
     local btn = Instance.new("TextButton", ContentFrame)
@@ -104,31 +101,14 @@ local function CreateButton(name, order, callback)
         active = not active
         btn.Text = name .. (active and ": ON" or ": OFF")
         btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
-        callback(active) -- Jalankan fungsi saat tombol dipencet
+        callback(active)
     end)
 end
 
--- [[ 5. TEMPAT ISI LOGIKA SCRIPT ]] --
+-- [[ 5. LOGIKA SCRIPT ]] --
+CreateButton("Auto Attack", 1, function(s) print("Attack: "..tostring(s)) end)
+CreateButton("Attack Range", 2, function(s) print("Range: "..tostring(s)) end)
+CreateButton("Fly Above NPC", 3, function(s) print("Fly: "..tostring(s)) end)
+CreateButton("Auto Quest", 4, function(s) print("Quest: "..tostring(s)) end)
 
-CreateButton("Auto Attack", 1, function(state)
-    if state then
-        print("Auto Attack Aktif")
-        -- Masukkan script serang di sini
-    else
-        print("Auto Attack Mati")
-    end
-end)
-
-CreateButton("Attack Range", 2, function(state)
-    print("Attack Range: " .. tostring(state))
-end)
-
-CreateButton("Fly Above NPC", 3, function(state)
-    print("Fly: " .. tostring(state))
-end)
-
-CreateButton("Auto Quest", 4, function(state)
-    print("Quest: " .. tostring(state))
-end)
-
-print("UI Siap! Sekarang bisa di-drag dan di-klik.")
+print("Versi Hybrid (Drag & Klik) Berhasil Dimuat!")
