@@ -3,64 +3,75 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- Wadah buat Garis agar tidak hilang
+-- Wadah UI
 local TracerGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-TracerGui.Name = "PureTracers"
+TracerGui.Name = "RonixUniversalESP"
 TracerGui.ResetOnSpawn = false
 
 local function buatESP(player)
-    player.CharacterAdded:Connect(function(char)
-        if player == LocalPlayer then return end
-        
-        local root = char:WaitForChild("HumanoidRootPart", 10) 
-        if root then
-            -- 1. KOTAK (Logika Asli)
-            if root:FindFirstChild("KotakESP") then root.KotakESP:Destroy() end
-            local gui = Instance.new("BillboardGui", root)
-            gui.Name = "KotakESP"
-            gui.AlwaysOnTop = true
-            gui.Size = UDim2.new(4, 0, 5.5, 0)
-            local frame = Instance.new("Frame", gui)
-            frame.Size = UDim2.new(1, 0, 1, 0)
-            frame.BackgroundTransparency = 0.6
-            frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-            local stroke = Instance.new("UIStroke", frame)
-            stroke.Thickness = 2
-            stroke.Color = Color3.fromRGB(255, 255, 255)
+    if player == LocalPlayer then return end
 
-            -- 2. GARIS (Tracers)
-            local tracerLine = Instance.new("Frame", TracerGui)
-            tracerLine.BorderSizePixel = 0
-            tracerLine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            tracerLine.AnchorPoint = Vector2.new(0.5, 0.5)
+    local function applyESP(char)
+        pcall(function()
+            local root = char:WaitForChild("HumanoidRootPart", 10)
+            if root then
+                -- 1. KOTAK MERAH (Logika Stabil)
+                if root:FindFirstChild("KotakESP") then root.KotakESP:Destroy() end
+                local gui = Instance.new("BillboardGui", root)
+                gui.Name = "KotakESP"
+                gui.AlwaysOnTop = true
+                gui.Size = UDim2.new(4, 0, 5.5, 0)
+                
+                local frame = Instance.new("Frame", gui)
+                frame.Size = UDim2.new(1, 0, 1, 0)
+                frame.BackgroundTransparency = 0.6
+                frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+                
+                local stroke = Instance.new("UIStroke", frame)
+                stroke.Thickness = 2
+                stroke.Color = Color3.fromRGB(255, 255, 255)
 
-            local connection
-            connection = RunService.RenderStepped:Connect(function()
-                if char.Parent and root and player.Parent then
-                    local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
-                    if onScreen then
-                        local startPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                        local endPos = Vector2.new(pos.X, pos.Y)
-                        local distance = (startPos - endPos).Magnitude
-                        
-                        tracerLine.Visible = true
-                        tracerLine.Size = UDim2.new(0, 1.5, 0, distance)
-                        tracerLine.Position = UDim2.new(0, (startPos.X + endPos.X) / 2, 0, (startPos.Y + endPos.Y) / 2)
-                        tracerLine.Rotation = math.deg(math.atan2(endPos.Y - startPos.Y, endPos.X - startPos.X)) - 90
+                -- 2. GARIS PUTIH (Tracers)
+                local tracerLine = TracerGui:FindFirstChild(player.Name .. "_Tracer") or Instance.new("Frame", TracerGui)
+                tracerLine.Name = player.Name .. "_Tracer"
+                tracerLine.BorderSizePixel = 0
+                tracerLine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                tracerLine.AnchorPoint = Vector2.new(0.5, 0.5)
+
+                local connection
+                connection = RunService.RenderStepped:Connect(function()
+                    if char.Parent and root.Parent and player.Parent then
+                        local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+                        if onScreen then
+                            local startPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                            local endPos = Vector2.new(pos.X, pos.Y)
+                            local distance = (startPos - endPos).Magnitude
+                            
+                            tracerLine.Visible = true
+                            tracerLine.Size = UDim2.new(0, 1.5, 0, distance)
+                            tracerLine.Position = UDim2.new(0, (startPos.X + endPos.X) / 2, 0, (startPos.Y + endPos.Y) / 2)
+                            tracerLine.Rotation = math.deg(math.atan2(endPos.Y - startPos.Y, endPos.X - startPos.X)) - 90
+                        else
+                            tracerLine.Visible = false
+                        end
                     else
-                        tracerLine.Visible = false
+                        tracerLine:Destroy()
+                        connection:Disconnect()
                     end
-                else
-                    tracerLine:Destroy()
-                    if connection then connection:Disconnect() end
-                end
-            end)
-        end
+                end)
+            end
+        end)
+    end
+
+    if player.Character then applyESP(player.Character) end
+    player.CharacterAdded:Connect(applyESP)
+end
+
+-- Scan semua pemain tanpa kecuali
+for _, p in pairs(Players:GetPlayers()) do
+    task.spawn(function()
+        buatESP(p)
     end)
 end
 
-for _, p in pairs(Players:GetPlayers()) do
-    if p.Character then task.spawn(function() buatESP(p) end) end
-    buatESP(p)
-end
 Players.PlayerAdded:Connect(buatESP)
