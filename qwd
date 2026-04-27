@@ -4,66 +4,62 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 local TracerGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-TracerGui.Name = "HideAndSeekFinder"
+TracerGui.Name = "AutoTeamESP"
 TracerGui.ResetOnSpawn = false
 
-local function beriESP(obj)
-    -- Mencari bagian tubuh di mana pun objeknya berada (meskipun disembunyikan game)
-    local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Head") or obj:FindFirstChild("Handle")
-    
-    if root and not root:FindFirstChild("KotakESP") then
-        local gui = Instance.new("BillboardGui", root)
-        gui.Name = "KotakESP"
-        gui.AlwaysOnTop = true
-        gui.Size = UDim2.new(4, 0, 5.5, 0)
-        
-        local frame = Instance.new("Frame", gui)
-        frame.Size = UDim2.new(1, 0, 1, 0)
-        frame.BackgroundTransparency = 0.5
-        frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        
-        local stroke = Instance.new("UIStroke", frame)
-        stroke.Thickness = 2
-        stroke.Color = Color3.fromRGB(255, 255, 255)
+local function beriESP(player)
+    local function apply(char)
+        task.spawn(function()
+            local root = char:WaitForChild("HumanoidRootPart", 10) or char:WaitForChild("Head", 10)
+            if root then
+                if root:FindFirstChild("KotakESP") then root.KotakESP:Destroy() end
+                
+                local gui = Instance.new("BillboardGui", root)
+                gui.Name = "KotakESP"
+                gui.AlwaysOnTop = true
+                gui.Size = UDim2.new(4, 0, 5.5, 0)
+                
+                local frame = Instance.new("Frame", gui)
+                frame.Size = UDim2.new(1, 0, 1, 0)
+                frame.BackgroundTransparency = 0.5
+                frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+                Instance.new("UIStroke", frame).Color = Color3.fromRGB(255, 255, 255)
 
-        -- Tambah Garis (Tracer)
-        local tracerLine = Instance.new("Frame", TracerGui)
-        tracerLine.BorderSizePixel = 0
-        tracerLine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        tracerLine.AnchorPoint = Vector2.new(0.5, 0.5)
+                local tracerLine = TracerGui:FindFirstChild(player.Name.."_T") or Instance.new("Frame", TracerGui)
+                tracerLine.Name = player.Name.."_T"
+                tracerLine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                tracerLine.BorderSizePixel = 0
+                tracerLine.AnchorPoint = Vector2.new(0.5, 0.5)
 
-        local connection
-        connection = RunService.RenderStepped:Connect(function()
-            if root and root.Parent then
-                local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
-                if onScreen then
-                    local startPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                    local endPos = Vector2.new(pos.X, pos.Y)
-                    local distance = (startPos - endPos).Magnitude
-                    tracerLine.Visible = true
-                    tracerLine.Size = UDim2.new(0, 1.5, 0, distance)
-                    tracerLine.Position = UDim2.new(0, (startPos.X + endPos.X) / 2, 0, (startPos.Y + endPos.Y) / 2)
-                    tracerLine.Rotation = math.deg(math.atan2(endPos.Y - startPos.Y, endPos.X - startPos.X)) - 90
-                else
-                    tracerLine.Visible = false
-                end
-            else
-                tracerLine:Destroy()
-                connection:Disconnect()
+                local conn
+                conn = RunService.RenderStepped:Connect(function()
+                    -- LOGIKA OTOMATIS: Hanya muncul jika tim berbeda dengan kamu
+                    if char.Parent and player.Parent and player.Team ~= LocalPlayer.Team then
+                        local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+                        if onScreen then
+                            local start = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
+                            local endP = Vector2.new(pos.X, pos.Y)
+                            tracerLine.Visible = true
+                            tracerLine.Size = UDim2.new(0, 1.5, 0, (start - endP).Magnitude)
+                            tracerLine.Position = UDim2.new(0, (start.X + endP.X)/2, 0, (start.Y + endP.Y)/2)
+                            tracerLine.Rotation = math.deg(math.atan2(endP.Y - start.Y, endP.X - startP.X)) - 90
+                            gui.Enabled = true
+                        else
+                            tracerLine.Visible = false
+                            gui.Enabled = false
+                        end
+                    else
+                        tracerLine.Visible = false
+                        gui.Enabled = false
+                        if not player.Parent then tracerLine:Destroy(); conn:Disconnect() end
+                    end
+                end)
             end
         end)
     end
+    if player.Character then apply(player.Character) end
+    player.CharacterAdded:Connect(apply)
 end
 
--- SCAN TOTAL (Mencari pemain meskipun sedang jadi benda/prop)
-task.spawn(function()
-    while task.wait(2) do
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("Humanoid") and v.Parent ~= LocalPlayer.Character then
-                beriESP(v.Parent)
-            end
-        end
-    end
-end)
-
-print("Hide and Seek Finder Active!")
+for _, p in pairs(Players:GetPlayers()) do buatESP(p) end
+Players.PlayerAdded:Connect(buatESP)
