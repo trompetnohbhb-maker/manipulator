@@ -1,45 +1,79 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
-_G.LongRange = true
-_G.AttackDistance = 200 -- Jarak pukul (Jangan lebih dari 100 agar tidak kena kick)
+-- Wadah Utama
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+ScreenGui.Name = "RonixTabMenu"
+ScreenGui.ResetOnSpawn = false
 
-task.spawn(function()
-    while _G.LongRange do
-        task.wait(0.1)
-        pcall(function()
-            local char = LocalPlayer.Character
-            local tool = char and char:FindFirstChildOfClass("Tool")
-            
-            if tool then
-                -- Cari musuh terdekat
-                for _, enemy in pairs(workspace.Enemies:GetChildren()) do
-                    local hum = enemy:FindFirstChild("Humanoid")
-                    local root = enemy:FindFirstChild("HumanoidRootPart")
-                    
-                    if hum and root and hum.Health > 0 then
-                        local dist = (root.Position - char.HumanoidRootPart.Position).Magnitude
-                        
-                        -- Jika musuh dalam jangkauan jauh
-                        if dist < _G.AttackDistance then
-                            -- Teknik: Mengirim serangan langsung ke posisi musuh (Silent Aim Pukul)
-                            tool:Activate()
-                            
-                            -- Simulasi kena tanpa gerak (Fast Attack)
-                            local args = {
-                                [1] = root.Position
-                            }
-                            -- Mengaktifkan event serangan senjata (Jika game support)
-                            if tool:FindFirstChild("RemoteEvent") then
-                                tool.RemoteEvent:FireServer(unpack(args))
-                            end
-                        end
-                    end
-                end
-            end
-        end)
-    end
+-- [[ 1. HEADER (1 LINE UTAMA) ]] --
+local Header = Instance.new("Frame", ScreenGui)
+Header.Size = UDim2.new(0, 180, 0, 35)
+Header.Position = UDim2.new(0.1, 0, 0.2, 0)
+Header.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+Header.BorderSizePixel = 0
+Header.Active = true
+Header.Draggable = true -- Fitur Draggable Ronix
+
+local Title = Instance.new("TextButton", Header)
+Title.Size = UDim2.new(1, 0, 1, 0)
+Title.Text = "BLOX FRUIT MENU ▼"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 14
+
+-- [[ 2. CONTENT CONTAINER (MENU YG MUNCUL) ]] --
+local Content = Instance.new("Frame", Header)
+Content.Size = UDim2.new(1, 0, 0, 160)
+Content.Position = UDim2.new(0, 0, 1, 0)
+Content.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Content.Visible = false -- Awalnya tertutup
+Content.BorderSizePixel = 0
+
+local UIList = Instance.new("UIListLayout", Content)
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+UIList.Padding = UDim.new(0, 5)
+
+-- Fungsi Buat Tombol Fitur
+local function CreateFeature(name)
+    local btn = Instance.new("TextButton", Content)
+    btn.Size = UDim2.new(1, -10, 0, 35)
+    btn.Text = name .. ": OFF"
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.Font = Enum.Font.SourceSans
+    btn.TextSize = 14
+    
+    -- Efek Klik Sederhana
+    local active = false
+    btn.MouseButton1Click:Connect(function()
+        active = not active
+        btn.Text = name .. (active and ": ON" or ": OFF")
+        btn.TextColor3 = active and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(200, 200, 200)
+        btn.BackgroundColor3 = active and Color3.fromRGB(55, 55, 55) or Color3.fromRGB(45, 45, 45)
+        print(name .. " diubah ke " .. tostring(active))
+    end)
+    
+    local corner = Instance.new("UICorner", btn)
+    corner.CornerRadius = UDim.new(0, 6)
+end
+
+-- Menambahkan Menu Sesuai Request
+CreateFeature("Auto Attack")
+CreateFeature("Kill Aura")
+CreateFeature("Fly Above NPC")
+CreateFeature("Auto Quest")
+
+-- [[ 3. LOGIKA KLIK HEADER UNTUK BUKA/TUTUP ]] --
+Title.MouseButton1Click:Connect(function()
+    Content.Visible = not Content.Visible
+    Title.Text = Content.Visible and "BLOX FRUIT MENU ▲" or "BLOX FRUIT MENU ▼"
 end)
 
-print("Long Range Attack Aktif! Jarak: " .. _G.AttackDistance)
+-- Efek Mempercantik
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 6)
+Instance.new("UICorner", Content).CornerRadius = UDim.new(0, 6)
+
+print("UI Menu Ronix Berhasil Dimuat!")
