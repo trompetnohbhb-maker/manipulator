@@ -1,47 +1,66 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
 
+-- KONFIGURASI
+local Smoothness = 0.1 -- Kecepatan kunci (0.1 sangat cepat)
+local FOV_Radius = 250 -- Jarak maksimal mouse ke musuh agar terkunci
+
+-- [[ 1. ESP NORMAL (STABIL) ]] --
 local function buatESP(player)
-    local function applyESP(char)
+    player.CharacterAdded:Connect(function(char)
         if player == LocalPlayer then return end
-        
-        -- Menunggu HumanoidRootPart atau Head (Universal Check)
-        local root = char:WaitForChild("HumanoidRootPart", 10) or char:WaitForChild("Head", 10)
-        
+        local root = char:WaitForChild("HumanoidRootPart", 10) 
         if root then
-            -- Hapus jika sudah ada agar tidak tumpuk
             if root:FindFirstChild("KotakESP") then root.KotakESP:Destroy() end
-
-            local gui = Instance.new("BillboardGui")
+            local gui = Instance.new("BillboardGui", root)
             gui.Name = "KotakESP"
             gui.AlwaysOnTop = true
             gui.Size = UDim2.new(4, 0, 5.5, 0)
-            gui.Adornee = root
-            gui.Parent = root
-
-            local frame = Instance.new("Frame")
+            local frame = Instance.new("Frame", gui)
             frame.Size = UDim2.new(1, 0, 1, 0)
             frame.BackgroundTransparency = 0.6
             frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-            frame.BorderSizePixel = 0
-            frame.Parent = gui
-            
-            local stroke = Instance.new("UIStroke")
+            local stroke = Instance.new("UIStroke", frame)
             stroke.Thickness = 2
             stroke.Color = Color3.fromRGB(255, 255, 255)
-            stroke.Parent = frame
         end
-    end
-
-    if player.Character then applyESP(player.Character) end
-    player.CharacterAdded:Connect(applyESP)
-end
-
--- Menjalankan untuk semua pemain di server
-for _, p in pairs(Players:GetPlayers()) do
-    task.spawn(function()
-        buatESP(p)
     end)
 end
 
+-- [[ 2. LOGIKA AUTO AIM (SAAT NEMBAK) ]] --
+local function getClosestPlayer()
+    local target = nil
+    local shortestDistance = FOV_Radius
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local pos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position)
+            if onScreen then
+                local distance = (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+                if distance < shortestDistance then
+                    target = player.Character.Head
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+    return target
+end
+
+-- Deteksi saat nembak (Klik Kiri)
+Mouse.Button1Down:Connect(function()
+    local target = getClosestPlayer()
+    if target then
+        -- Mengunci kamera ke arah musuh secara instan saat nembak
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+    end
+end)
+
+-- Jalankan ESP awal
+for _, p in pairs(Players:GetPlayers()) do
+    if p.Character then buatESP(p) end
+    buatESP(p)
+end
 Players.PlayerAdded:Connect(buatESP)
