@@ -1,31 +1,22 @@
-local player = game.Players.LocalPlayer
-local runService = game:GetService("RunService")
+local Player = game.Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Root = Character:WaitForChild("HumanoidRootPart")
 
--- Fungsi maksa transparan
-local function makeUltraInvis()
-    local char = player.Character
-    if char then
-        for _, v in pairs(char:GetDescendants()) do
-            -- Menghilangkan part tubuh, decal (muka), dan baju 3D
-            if v:IsA("BasePart") or v:IsA("Decal") or v:IsA("Texture") or v:IsA("MeshPart") then
-                if v.Name ~= "HumanoidRootPart" then
-                    v.Transparency = 1
-                end
-            end
-            -- Menghilangkan baju klasik (Shirt/Pants)
-            if v:IsA("Shirt") or v:IsA("Pants") or v:IsA("GraphicTShirt") or v:IsA("ShirtGraphic") then
-                v:Destroy()
-            end
-            -- Menghilangkan aksesoris (rambut, topi, tas)
-            if v:IsA("Accessory") then
-                local handle = v:FindFirstChild("Handle")
-                if handle then handle.Transparency = 1 end
-            end
-        end
-    end
+-- Simpan posisi asli
+local Pos = Root.CFrame
+
+-- Eksekusi Invisible Glitch
+Character:MoveTo(Vector3.new(0, -500, 0)) -- Kirim ke bawah map sebentar
+task.wait(0.5)
+
+-- Hapus sambungan karakter (Ini yang bikin kamu Invis di server)
+if Character:FindFirstChild("LowerTorso") then
+    Character.LowerTorso.Root:Destroy()
+else
+    Character.Torso.Neck:Destroy()
 end
 
--- Jalankan terus setiap frame supaya nggak muncul lagi (Anti-Reset Visual)
-runService.RenderStepped:Connect(makeUltraInvis)
+-- Kembalikan posisi ke tempat semula
+Root.CFrame = Pos
 
-print("Ultra Invis Aktif! Harusnya sekarang sudah hilang total.")
+print("Invis Glitch Aktif! Di layar orang lain kamu sudah hilang atau diam.")
