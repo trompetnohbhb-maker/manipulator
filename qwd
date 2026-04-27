@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 -- Ambil Remote Attack Blox Fruits
 local AttackRemote = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE"):WaitForChild("Attack")
@@ -96,11 +97,30 @@ local function CreateButton(name, order, callback)
 end
 
 -- ==========================================
--- [[ 5. ISI KODE FITUR DI SINI ]]
+-- [[ 5. ISI KODE FITUR ]]
 -- ==========================================
 
--- 1. AUTO ATTACK (Blox Fruits)
+-- Variabel Pendukung
 local FastAttackEnabled = false
+local FlyEnabled = false
+
+-- Fungsi Cari NPC Terdekat
+local function GetClosestNPC()
+    local closest = nil
+    local dist = math.huge
+    for _, v in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
+        if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
+            local magnitude = (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            if magnitude < dist then
+                dist = magnitude
+                closest = v
+            end
+        end
+    end
+    return closest
+end
+
+-- 1. AUTO ATTACK
 CreateButton("Auto Attack", 1, function(state)
     FastAttackEnabled = state
     if FastAttackEnabled then
@@ -108,34 +128,37 @@ CreateButton("Auto Attack", 1, function(state)
             while FastAttackEnabled do
                 local char = LocalPlayer.Character
                 local tool = char and char:FindFirstChildOfClass("Tool")
-                
                 if tool then
-                    -- Kirim sinyal serang 2x sekaligus (Sangat Cepat)
                     AttackRemote:FireServer(0.1)
                     AttackRemote:FireServer(0.1)
-                    
-                    -- Jalankan animasi pukul
                     tool:Activate()
                 end
-                task.wait(0.1) -- Jeda aman agar tidak error
+                task.wait(0.1)
             end
         end)
     end
 end)
 
--- 2. ATTACK RANGE (Masih Kosong)
-CreateButton("Attack Range", 2, function(state)
-    print("Attack Range: "..tostring(state))
-end)
+-- 2. ATTACK RANGE (Placeholder)
+CreateButton("Attack Range", 2, function(state) end)
 
--- 3. FLY ABOVE NPC (Masih Kosong)
+-- 3. FLY ABOVE NPC
 CreateButton("Fly Above NPC", 3, function(state)
-    print("Fly: "..tostring(state))
+    FlyEnabled = state
+    if FlyEnabled then
+        task.spawn(function()
+            while FlyEnabled do
+                local npc = GetClosestNPC()
+                local char = LocalPlayer.Character
+                if npc and char and char:FindFirstChild("HumanoidRootPart") then
+                    -- Teleport ke atas NPC (Jarak 10 unit di atas)
+                    char.HumanoidRootPart.CFrame = npc.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+                end
+                task.wait() -- Tanpa angka agar sangat smooth
+            end
+        end)
+    end
 end)
 
--- 4. AUTO QUEST (Masih Kosong)
-CreateButton("Auto Quest", 4, function(state)
-    print("Quest: "..tostring(state))
-end)
-
-print("Script Blox Fruits Siap!")
+-- 4. AUTO QUEST (Placeholder)
+CreateButton("Auto Quest", 4, function(state) end)
