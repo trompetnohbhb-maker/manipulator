@@ -4,31 +4,32 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
--- [[ 1. RESET & CLEANUP ]] --
+-- [[ 1. RESET STATUS ]] --
 _G.AutoAttack = false
 _G.AttackRange = false
 _G.FlyAbove = false
 _G.AutoQuest = false
 
+-- Hapus UI lama
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-if PlayerGui:FindFirstChild("YutaHub_V1") then PlayerGui.YutaHub_V1:Destroy() end
+if PlayerGui:FindFirstChild("YutaHub_V3") then PlayerGui.YutaHub_V3:Destroy() end
 
--- [[ 2. SETUP UI YUTA HUB 1 ]] --
+-- [[ 2. SETUP UI YUTA HUB 3 ]] --
 local ScreenGui = Instance.new("ScreenGui", PlayerGui)
-ScreenGui.Name = "YutaHub_V1"
+ScreenGui.Name = "YutaHub_V3"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 160, 0, 260)
 MainFrame.Position = UDim2.new(0.5, -80, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
 local Header = Instance.new("TextLabel", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 40)
-Header.Text = "YUTA HUB 1" -- NAMA DIUBAH
+Header.Text = "YUTA HUB 3" -- NAMA UPDATE
 Header.TextColor3 = Color3.fromRGB(255, 255, 255)
-Header.BackgroundColor3 = Color3.fromRGB(130, 0, 0)
+Header.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 Header.Font = Enum.Font.SourceSansBold
 Header.TextSize = 16
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 10)
@@ -57,49 +58,52 @@ local Layout = Instance.new("UIListLayout", ButtonHolder); Layout.Padding = UDim
 local function CreateButton(name, order, callback)
     local btn = Instance.new("TextButton", ButtonHolder)
     btn.Size = UDim2.new(0.9, 0, 0, 40); btn.LayoutOrder = order; btn.Text = name .. ": OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); btn.TextColor3 = Color3.fromRGB(255, 255, 255); btn.Font = Enum.Font.SourceSansBold
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35); btn.TextColor3 = Color3.fromRGB(255, 255, 255); btn.Font = Enum.Font.SourceSansBold
     Instance.new("UICorner", btn)
     local active = false
     btn.MouseButton1Click:Connect(function()
         active = not active
         btn.Text = name .. (active and ": ON" or ": OFF")
-        btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(40, 40, 40)
+        btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(35, 35, 35)
         callback(active)
     end)
 end
 
--- [[ 3. OTENTIK FAST ATTACK LOGIC (YT METHOD) ]] --
-local function FastAttack()
-    pcall(function()
-        local Combat = ReplicatedStorage.Modules.Net:FindFirstChild("RE/Attack") or ReplicatedStorage.Modules.Net:FindFirstChild("Attack")
-        local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-        if Tool and Combat then
-            -- Memicu serangan tanpa delay animasi
-            Combat:FireServer(0.1) 
-            -- Memicu efek visual agar hit teregistrasi
-            if Tool:FindFirstChild("Attack") then
-                Tool.Attack:Fire()
-            end
+-- [[ 3. BYPASS & HIT LOGIC ]] --
+local function GetEnemy()
+    local folder = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
+    for _, v in pairs(folder:GetChildren()) do
+        if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+            return v
         end
-    end)
+    end
 end
 
--- [[ 4. CORE FEATURES ]] --
+-- [[ 4. FITUR ]] --
 
--- A. AUTO ATTACK (YouTube Meta Method)
+-- AUTO ATTACK (Bypass Method)
 CreateButton("Auto Attack", 1, function(state)
     _G.AutoAttack = state
     task.spawn(function()
+        local Net = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Net")
+        local AttackRE = Net:WaitForChild("RE"):WaitForChild("Attack")
+        
         while _G.AutoAttack do
-            RunService.RenderStepped:Wait() -- Loop secepat FPS
-            if _G.AutoAttack then
-                FastAttack()
-            end
+            RunService.RenderStepped:Wait()
+            pcall(function()
+                local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                local Enemy = GetEnemy()
+                if Tool and Enemy then
+                    -- BYPASS: Kirim data hit langsung ke musuh terdekat
+                    AttackRE:FireServer(0.1) -- Argumen kecepatan
+                    Tool:Activate() -- Animasi pendukung
+                end
+            end)
         end
     end)
 end)
 
--- B. ATTACK RANGE (Hitbox Expander)
+-- ATTACK RANGE (Hitbox Expander)
 CreateButton("Attack Range", 2, function(state)
     _G.AttackRange = state
     task.spawn(function()
@@ -108,7 +112,7 @@ CreateButton("Attack Range", 2, function(state)
             pcall(function()
                 local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
                 if tool and tool:FindFirstChild("Handle") then
-                    tool.Handle.Size = Vector3.new(100, 100, 100)
+                    tool.Handle.Size = Vector3.new(65, 65, 65)
                     tool.Handle.Transparency = 0.8
                     tool.Handle.CanCollide = false
                 end
@@ -117,32 +121,23 @@ CreateButton("Attack Range", 2, function(state)
     end)
 end)
 
--- C. FLY ABOVE NPC (Tinggi 15 Unit)
+-- FLY ABOVE NPC (Tinggi 10 unit)
 CreateButton("Fly Above NPC", 3, function(state)
     _G.FlyAbove = state
     task.spawn(function()
         while _G.FlyAbove do
             RunService.Heartbeat:Wait()
             pcall(function()
-                local target = nil
-                local dist = 500
-                local enemies = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
-                for _, v in pairs(enemies:GetChildren()) do
-                    if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                        local mag = (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                        if mag < dist then dist = mag; target = v end
-                    end
-                end
-                
-                if target then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0)
+                local Enemy = GetEnemy()
+                if Enemy and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = Enemy.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0)
                 end
             end)
         end
     end)
 end)
 
--- D. AUTO QUEST
+-- AUTO QUEST (Bandit)
 CreateButton("Auto Quest", 4, function(state)
     _G.AutoQuest = state
     task.spawn(function()
