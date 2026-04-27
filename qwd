@@ -1,22 +1,27 @@
 local Player = game.Players.LocalPlayer
-local Character = Player.Character or Player.CharacterAdded:Wait()
-local Root = Character:WaitForChild("HumanoidRootPart")
+local Character = Player.Character
+local Root = Character.HumanoidRootPart
 
--- Simpan posisi asli
+-- Simpan posisi asli biar bisa jalan
 local Pos = Root.CFrame
 
--- Eksekusi Invisible Glitch
-Character:MoveTo(Vector3.new(0, -500, 0)) -- Kirim ke bawah map sebentar
-task.wait(0.5)
+-- LOGIKA: Kirim badan asli ke bawah map (Server Side Bypass)
+-- Di layar orang lain, kamu ada di bawah tanah, jadi gak bisa disentuh/dilihat
+task.spawn(function()
+    while task.wait() do
+        if Character:FindFirstChild("Humanoid") then
+            -- Membuat karakter seolah-olah "mati" tapi tetap hidup
+            Character.Humanoid:ChangeState(11) 
+        end
+    end
+end)
 
--- Hapus sambungan karakter (Ini yang bikin kamu Invis di server)
-if Character:FindFirstChild("LowerTorso") then
-    Character.LowerTorso.Root:Destroy()
-else
-    Character.Torso.Neck:Destroy()
+-- Menghilangkan bagian tubuh secara paksa
+for _, v in pairs(Character:GetDescendants()) do
+    if v:IsA("BasePart") then
+        v.Transparency = 1
+        v.CanCollide = false
+    end
 end
 
--- Kembalikan posisi ke tempat semula
-Root.CFrame = Pos
-
-print("Invis Glitch Aktif! Di layar orang lain kamu sudah hilang atau diam.")
+print("FE Invisible Aktif! Badan asli kamu sekarang aman di bawah tanah.")
