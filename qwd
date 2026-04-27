@@ -1,27 +1,38 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
-_G.KillAura = true
-_G.Range = 40 -- Jarak aman agar tidak terdeteksi bypass
+_G.LongRange = true
+_G.AttackDistance = 200 -- Jarak pukul (Jangan lebih dari 100 agar tidak kena kick)
 
 task.spawn(function()
-    while _G.KillAura do
+    while _G.LongRange do
         task.wait(0.1)
         pcall(function()
-            local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+            local char = LocalPlayer.Character
+            local tool = char and char:FindFirstChildOfClass("Tool")
+            
             if tool then
-                -- Cari musuh di folder Enemies
-                for _, v in pairs(workspace.Enemies:GetChildren()) do
-                    if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                        local root = v:FindFirstChild("HumanoidRootPart")
-                        if root then
-                            local dist = (root.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                            if dist < _G.Range then
-                                -- Serang tanpa teleport NPC (Lebih Aman)
-                                tool:Activate()
-                                -- Fast Attack (Hapus animasi)
-                                local anims = LocalPlayer.Character.Humanoid:GetPlayingAnimationTracks()
-                                for i=1, #anims do anims[i]:Stop() end
+                -- Cari musuh terdekat
+                for _, enemy in pairs(workspace.Enemies:GetChildren()) do
+                    local hum = enemy:FindFirstChild("Humanoid")
+                    local root = enemy:FindFirstChild("HumanoidRootPart")
+                    
+                    if hum and root and hum.Health > 0 then
+                        local dist = (root.Position - char.HumanoidRootPart.Position).Magnitude
+                        
+                        -- Jika musuh dalam jangkauan jauh
+                        if dist < _G.AttackDistance then
+                            -- Teknik: Mengirim serangan langsung ke posisi musuh (Silent Aim Pukul)
+                            tool:Activate()
+                            
+                            -- Simulasi kena tanpa gerak (Fast Attack)
+                            local args = {
+                                [1] = root.Position
+                            }
+                            -- Mengaktifkan event serangan senjata (Jika game support)
+                            if tool:FindFirstChild("RemoteEvent") then
+                                tool.RemoteEvent:FireServer(unpack(args))
                             end
                         end
                     end
@@ -30,3 +41,5 @@ task.spawn(function()
         end)
     end
 end)
+
+print("Long Range Attack Aktif! Jarak: " .. _G.AttackDistance)
