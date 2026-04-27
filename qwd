@@ -4,21 +4,22 @@ local UserInputService = game:GetService("UserInputService")
 
 -- Wadah Utama
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "RonixBlox_Draggable"
+ScreenGui.Name = "RonixBlox_Collapsible"
 ScreenGui.ResetOnSpawn = false
 
 -- [[ 1. MAIN FRAME ]] --
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 160, 0, 220)
+MainFrame.Size = UDim2.new(0, 160, 0, 220) -- Ukuran normal
 MainFrame.Position = UDim2.new(0.1, 0, 0.3, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
+MainFrame.ClipsDescendants = true -- Agar isi yang di luar frame tersembunyi
 
 local UICorner = Instance.new("UICorner", MainFrame)
 UICorner.CornerRadius = UDim.new(0, 8)
 
--- [[ 2. SISTEM GESER (DRAG) MANUAL ]] --
+-- [[ 2. SISTEM GESER (DRAG) ]] --
 local dragging, dragInput, dragStart, startPos
 
 local function update(input)
@@ -52,24 +53,46 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- [[ 3. ISI MENU ]] --
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0.15, 0)
-Title.Text = "DRAG ME"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 14
-Instance.new("UICorner", Title)
+-- [[ 3. HEADER / TOMBOL MINIMIZE ]] --
+local TitleBtn = Instance.new("TextButton", MainFrame)
+TitleBtn.Size = UDim2.new(1, 0, 0, 35) -- Tinggi tetap untuk header
+TitleBtn.Text = "DRAG ME (Click)"
+TitleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+TitleBtn.Font = Enum.Font.SourceSansBold
+TitleBtn.TextSize = 14
+TitleBtn.AutoButtonColor = false
 
-local Layout = Instance.new("UIListLayout", MainFrame)
+local HeaderCorner = Instance.new("UICorner", TitleBtn)
+HeaderCorner.CornerRadius = UDim.new(0, 8)
+
+-- Wadah untuk Tombol (agar bisa disembunyikan bareng)
+local ContentFrame = Instance.new("Frame", MainFrame)
+ContentFrame.Size = UDim2.new(1, 0, 1, -40)
+ContentFrame.Position = UDim2.new(0, 0, 0, 40)
+ContentFrame.BackgroundTransparency = 1
+
+local Layout = Instance.new("UIListLayout", ContentFrame)
 Layout.Padding = UDim.new(0, 5)
 Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-Layout.SortOrder = Enum.SortOrder.LayoutOrder
 
+-- Fungsi Buka/Tutup
+local collapsed = false
+TitleBtn.MouseButton1Click:Connect(function()
+    collapsed = not collapsed
+    if collapsed then
+        MainFrame:TweenSize(UDim2.new(0, 160, 0, 35), "Out", "Quad", 0.3, true)
+        ContentFrame.Visible = false
+    else
+        MainFrame:TweenSize(UDim2.new(0, 160, 0, 220), "Out", "Quad", 0.3, true)
+        ContentFrame.Visible = true
+    end
+end)
+
+-- [[ 4. ISI MENU ]] --
 local function CreateButton(name, order)
-    local btn = Instance.new("TextButton", MainFrame)
-    btn.Size = UDim2.new(0.9, 0, 0.18, 0)
+    local btn = Instance.new("TextButton", ContentFrame)
+    btn.Size = UDim2.new(0.9, 0, 0, 35)
     btn.LayoutOrder = order
     btn.Text = name .. ": OFF"
     btn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
@@ -91,4 +114,4 @@ CreateButton("Attack Range", 2)
 CreateButton("Fly Above NPC", 3)
 CreateButton("Auto Quest", 4)
 
-print("UI Draggable Berhasil Dimuat!")
+print("UI Collapsible Berhasil Dimuat!")
