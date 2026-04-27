@@ -3,7 +3,7 @@ local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
 _G.KillAura = true -- Set ke false untuk mematikan
-_G.AttackRange = 50 -- Jarak jangkauan pukul
+_G.AttackRange = 300 -- Jarak jangkauan pukul
 
 task.spawn(function()
     while _G.KillAura do
