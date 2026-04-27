@@ -4,22 +4,35 @@ local UserInputService = game:GetService("UserInputService")
 
 -- Wadah Utama
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "RonixBlox_Collapsible"
+ScreenGui.Name = "RonixBlox_Fixed"
 ScreenGui.ResetOnSpawn = false
 
 -- [[ 1. MAIN FRAME ]] --
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 160, 0, 220) -- Ukuran normal
+MainFrame.Size = UDim2.new(0, 160, 0, 220)
 MainFrame.Position = UDim2.new(0.1, 0, 0.3, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.ClipsDescendants = true -- Agar isi yang di luar frame tersembunyi
+MainFrame.ClipsDescendants = true 
 
 local UICorner = Instance.new("UICorner", MainFrame)
 UICorner.CornerRadius = UDim.new(0, 8)
 
--- [[ 2. SISTEM GESER (DRAG) ]] --
+-- [[ 2. HEADER / TOMBOL DRAG & CLICK ]] --
+local TitleBtn = Instance.new("TextButton", MainFrame)
+TitleBtn.Size = UDim2.new(1, 0, 0, 35)
+TitleBtn.Text = "DRAG ME (Click)"
+TitleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+TitleBtn.Font = Enum.Font.SourceSansBold
+TitleBtn.TextSize = 14
+TitleBtn.AutoButtonColor = false
+
+local HeaderCorner = Instance.new("UICorner", TitleBtn)
+HeaderCorner.CornerRadius = UDim.new(0, 8)
+
+-- [[ 3. SISTEM DRAG (Ditaruh di TitleBtn) ]] --
 local dragging, dragInput, dragStart, startPos
 
 local function update(input)
@@ -27,7 +40,7 @@ local function update(input)
     MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end
 
-MainFrame.InputBegan:Connect(function(input)
+TitleBtn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
@@ -41,7 +54,7 @@ MainFrame.InputBegan:Connect(function(input)
     end
 end)
 
-MainFrame.InputChanged:Connect(function(input)
+TitleBtn.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
         dragInput = input
     end
@@ -53,20 +66,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- [[ 3. HEADER / TOMBOL MINIMIZE ]] --
-local TitleBtn = Instance.new("TextButton", MainFrame)
-TitleBtn.Size = UDim2.new(1, 0, 0, 35) -- Tinggi tetap untuk header
-TitleBtn.Text = "DRAG ME (Click)"
-TitleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-TitleBtn.Font = Enum.Font.SourceSansBold
-TitleBtn.TextSize = 14
-TitleBtn.AutoButtonColor = false
-
-local HeaderCorner = Instance.new("UICorner", TitleBtn)
-HeaderCorner.CornerRadius = UDim.new(0, 8)
-
--- Wadah untuk Tombol (agar bisa disembunyikan bareng)
+-- [[ 4. ISI MENU & COLLAPSE ]] --
 local ContentFrame = Instance.new("Frame", MainFrame)
 ContentFrame.Size = UDim2.new(1, 0, 1, -40)
 ContentFrame.Position = UDim2.new(0, 0, 0, 40)
@@ -76,7 +76,6 @@ local Layout = Instance.new("UIListLayout", ContentFrame)
 Layout.Padding = UDim.new(0, 5)
 Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- Fungsi Buka/Tutup
 local collapsed = false
 TitleBtn.MouseButton1Click:Connect(function()
     collapsed = not collapsed
@@ -89,8 +88,7 @@ TitleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- [[ 4. ISI MENU ]] --
-local function CreateButton(name, order)
+local function CreateButton(name, order, callback)
     local btn = Instance.new("TextButton", ContentFrame)
     btn.Size = UDim2.new(0.9, 0, 0, 35)
     btn.LayoutOrder = order
@@ -106,12 +104,31 @@ local function CreateButton(name, order)
         active = not active
         btn.Text = name .. (active and ": ON" or ": OFF")
         btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+        callback(active) -- Jalankan fungsi saat tombol dipencet
     end)
 end
 
-CreateButton("Auto Attack", 1)
-CreateButton("Attack Range", 2)
-CreateButton("Fly Above NPC", 3)
-CreateButton("Auto Quest", 4)
+-- [[ 5. TEMPAT ISI LOGIKA SCRIPT ]] --
 
-print("UI Collapsible Berhasil Dimuat!")
+CreateButton("Auto Attack", 1, function(state)
+    if state then
+        print("Auto Attack Aktif")
+        -- Masukkan script serang di sini
+    else
+        print("Auto Attack Mati")
+    end
+end)
+
+CreateButton("Attack Range", 2, function(state)
+    print("Attack Range: " .. tostring(state))
+end)
+
+CreateButton("Fly Above NPC", 3, function(state)
+    print("Fly: " .. tostring(state))
+end)
+
+CreateButton("Auto Quest", 4, function(state)
+    print("Quest: " .. tostring(state))
+end)
+
+print("UI Siap! Sekarang bisa di-drag dan di-klik.")
