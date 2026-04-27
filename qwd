@@ -1,13 +1,16 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Wadah Utama
+-- Ambil Remote Attack Blox Fruits
+local AttackRemote = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE"):WaitForChild("Attack")
+
+-- Wadah Utama UI
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "RonixBlox_FinalFix"
+ScreenGui.Name = "RonixBlox_BloxFruit"
 ScreenGui.ResetOnSpawn = false
 
--- [[ 1. MAIN FRAME ]] --
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 160, 0, 220)
 MainFrame.Position = UDim2.new(0.1, 0, 0.3, 0)
@@ -15,26 +18,23 @@ MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.ClipsDescendants = true 
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
-local UICorner = Instance.new("UICorner", MainFrame)
-UICorner.CornerRadius = UDim.new(0, 8)
-
--- [[ 2. HEADER (Hanya Visual & Handle Drag) ]] --
+-- Header (Handle Drag & Klik)
 local Header = Instance.new("TextLabel", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 35)
-Header.Text = "DRAG ME (Click)"
+Header.Text = "BLOX HUB (Drag)"
 Header.TextColor3 = Color3.fromRGB(255, 255, 255)
 Header.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 Header.Font = Enum.Font.SourceSansBold
 Header.TextSize = 14
-Header.Active = true -- Penting agar bisa menerima input
+Header.Active = true
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 8)
 
-local HeaderCorner = Instance.new("UICorner", Header)
-HeaderCorner.CornerRadius = UDim.new(0, 8)
-
--- [[ 3. SISTEM DRAG & KLIK STABIL ]] --
+-- Sistem Drag & Collapse
 local dragging, dragInput, dragStart, startPos
-local dragDistance = 0 -- Untuk membedakan klik vs drag
+local dragDistance = 0
+local collapsed = false
 
 Header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -48,43 +48,33 @@ end)
 UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
-        dragDistance = delta.Magnitude -- Hitung seberapa jauh digeser
+        dragDistance = delta.Magnitude
         MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
 
--- Deteksi saat lepas
-local collapsed = false
-local ContentFrame = Instance.new("Frame", MainFrame) -- Kita buat dulu agar fungsi klik bisa akses
+local ContentFrame = Instance.new("Frame", MainFrame)
+ContentFrame.Size = UDim2.new(1, 0, 1, -40)
+ContentFrame.Position = UDim2.new(0, 0, 0, 40)
+ContentFrame.BackgroundTransparency = 1
+local Layout = Instance.new("UIListLayout", ContentFrame)
+Layout.Padding = UDim.new(0, 5)
+Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         if dragging then
             dragging = false
-            -- JIKA DIGESER KURANG DARI 5 PIXEL, BERARTI ITU KLIK
             if dragDistance < 5 then
                 collapsed = not collapsed
-                if collapsed then
-                    MainFrame:TweenSize(UDim2.new(0, 160, 0, 35), "Out", "Quad", 0.2, true)
-                    ContentFrame.Visible = false
-                else
-                    MainFrame:TweenSize(UDim2.new(0, 160, 0, 220), "Out", "Quad", 0.2, true)
-                    ContentFrame.Visible = true
-                end
+                MainFrame:TweenSize(collapsed and UDim2.new(0, 160, 0, 35) or UDim2.new(0, 160, 0, 220), "Out", "Quad", 0.2, true)
+                ContentFrame.Visible = not collapsed
             end
         end
     end
 end)
 
--- [[ 4. ISI MENU ]] --
-ContentFrame.Size = UDim2.new(1, 0, 1, -40)
-ContentFrame.Position = UDim2.new(0, 0, 0, 40)
-ContentFrame.BackgroundTransparency = 1
-
-local Layout = Instance.new("UIListLayout", ContentFrame)
-Layout.Padding = UDim.new(0, 5)
-Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
+-- Fungsi Pembuat Tombol
 local function CreateButton(name, order, callback)
     local btn = Instance.new("TextButton", ContentFrame)
     btn.Size = UDim2.new(0.9, 0, 0, 35)
@@ -105,10 +95,48 @@ local function CreateButton(name, order, callback)
     end)
 end
 
--- [[ 5. LOGIKA SCRIPT ]] --
-CreateButton("Auto Attack", 1, function(s) print("Attack: "..tostring(s)) end)
-CreateButton("Attack Range", 2, function(s) print("Range: "..tostring(s)) end)
-CreateButton("Fly Above NPC", 3, function(s) print("Fly: "..tostring(s)) end)
-CreateButton("Auto Quest", 4, function(s) print("Quest: "..tostring(s)) end)
+-- ==========================================
+-- [[ 5. ISI KODE FITUR DI SINI ]]
+-- ==========================================
 
-print("Versi Hybrid (Drag & Klik) Berhasil Dimuat!")
+-- 1. AUTO ATTACK (Blox Fruits)
+local FastAttackEnabled = false
+CreateButton("Auto Attack", 1, function(state)
+    FastAttackEnabled = state
+    if FastAttackEnabled then
+        task.spawn(function()
+            while FastAttackEnabled do
+                local char = LocalPlayer.Character
+                local tool = char and char:FindFirstChildOfClass("Tool")
+                
+                if tool then
+                    -- Kirim sinyal serang 3x sekaligus (Sangat Cepat)
+                    AttackRemote:FireServer(0.1)
+                    AttackRemote:FireServer(0.1)
+                    AttackRemote:FireServer(0.1)
+                    
+                    -- Jalankan animasi pukul
+                    tool:Activate()
+                end
+                task.wait(0.1) -- Jeda aman agar tidak error
+            end
+        end)
+    end
+end)
+
+-- 2. ATTACK RANGE (Masih Kosong)
+CreateButton("Attack Range", 2, function(state)
+    print("Attack Range: "..tostring(state))
+end)
+
+-- 3. FLY ABOVE NPC (Masih Kosong)
+CreateButton("Fly Above NPC", 3, function(state)
+    print("Fly: "..tostring(state))
+end)
+
+-- 4. AUTO QUEST (Masih Kosong)
+CreateButton("Auto Quest", 4, function(state)
+    print("Quest: "..tostring(state))
+end)
+
+print("Script Blox Fruits Siap!")
