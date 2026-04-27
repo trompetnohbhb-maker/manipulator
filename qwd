@@ -1,26 +1,21 @@
-local Player = game.Players.LocalPlayer
-local Character = Player.Character or Player.CharacterAdded:Wait()
-local Root = Character:WaitForChild("HumanoidRootPart")
-local Hum = Character:WaitForChild("Humanoid")
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
 
--- Tentukan seberapa dalam kamu mau masuk (5-7 studs sudah cukup aman)
-local Depth = 6 
+-- SETTING KEDALAMAN (Makin gede angkanya, makin dalem tenggelamnya)
+local kedalaman = 7 
 
--- 1. Matikan Tabrakan (Noclip) supaya tidak terpental saat di bawah tanah
-local connection
-connection = game:GetService("RunService").Stepped:Connect(function()
-    for _, v in pairs(Character:GetDescendants()) do
+-- 1. Membuat karakter tenggelam tapi tetap bisa jalan
+hum.HipHeight = -kedalaman
+
+-- 2. Mematikan tabrakan agar tidak mental saat gesek lantai
+local runService = game:GetService("RunService")
+runService.Stepped:Connect(function()
+    for _, v in pairs(char:GetDescendants()) do
         if v:IsA("BasePart") then
             v.CanCollide = false
         end
     end
 end)
 
--- 2. Pindahkan posisi ke bawah
-Root.CFrame = Root.CFrame * CFrame.new(0, -Depth, 0)
-
--- 3. Mengatur Kamera agar tetap nyaman
--- (Opsional: Kamu bisa tetap gerak pakai WASD seperti biasa)
-Hum.HipHeight = -Depth -- Mengatur tinggi karakter secara teknis
-
-print("Karakter sekarang berada di bawah tanah! Seeker tidak bisa melihatmu.")
+print("Tenggelam aktif! Kamu bisa jalan di bawah lantai sekarang.")
