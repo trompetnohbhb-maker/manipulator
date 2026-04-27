@@ -139,6 +139,7 @@ CreateButton("Auto Attack", 1, function(state)
     end
 end)
 
+
 -- 2. ATTACK RANGE (Placeholder)
 CreateButton("Attack Range", 2, function(state) end)
 
@@ -160,5 +161,39 @@ CreateButton("Fly Above NPC", 3, function(state)
     end
 end)
 
+
 -- 4. AUTO QUEST (Placeholder)
 CreateButton("Auto Quest", 4, function(state) end)
+     -- [[ DATA QUEST BLOX FRUITS (SEA 1) ]] --
+local function GetQuestName()
+    local level = LocalPlayer.Data.Level.Value
+    if level >= 0 and level < 10 then return "BanditQuest1", 1, "Bandits"
+    elseif level >= 10 and level < 15 then return "MonkeyQuest1", 1, "Monkeys"
+    elseif level >= 15 and level < 30 then return "MonkeyQuest1", 2, "Gorillas"
+    elseif level >= 30 and level < 40 then return "PirateIslandQuest", 1, "Pirates"
+    elseif level >= 40 and level < 60 then return "PirateIslandQuest", 2, "Brutes"
+    -- Kamu bisa menambah list quest lainnya di sini
+    end
+end
+
+-- [[ LOGIKA AUTO QUEST ]] --
+local AutoQuestEnabled = false
+CreateButton("Auto Quest", 4, function(state)
+    AutoQuestEnabled = state
+    task.spawn(function()
+        while AutoQuestEnabled do
+            -- Jika tidak sedang punya Quest, maka ambil Quest
+            if not LocalPlayer.PlayerGui.Main:FindFirstChild("Quest") or LocalPlayer.PlayerGui.Main.Quest.Visible == false then
+                local questName, questId, targetName = GetQuestName()
+                
+                if questName then
+                    -- Remote untuk mengambil quest
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", questName, questId)
+                    print("Mengambil Quest: " .. targetName)
+                end
+            end
+            task.wait(1) -- Cek setiap 1 detik agar tidak lag
+        end
+    end)
+end)
+
