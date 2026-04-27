@@ -1,67 +1,78 @@
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
-local function createESP(player)
-    -- Membuat garis kotak
-    local box = Drawing.new("Square")
-    box.Thickness = 2
-    box.Color = Color3.fromRGB(255, 0, 0)
-    box.Filled = false
-    box.Transparency = 1
-    box.Visible = false
+local function beriESP(player)
+    player.CharacterAdded:Connect(function(char)
+        if player == LocalPlayer then return end
+        
+        local root = char:WaitForChild("HumanoidRootPart", 10)
+        if root then
+            -- 1. Membuat Box Berwarna (Tembus Dinding)
+            local gui = Instance.new("BillboardGui")
+            gui.Name = "KotakESP"
+            gui.AlwaysOnTop = true -- Ini yang bikin tembus dinding
+            gui.Size = UDim2.new(4.5, 0, 6, 0) -- Ukuran kotak menutupi badan
+            gui.Adornee = root
+            gui.Parent = root
 
-    -- Membuat garis tracer (garis dari bawah ke pemain)
-    local tracer = Drawing.new("Line")
-    tracer.Thickness = 1
-    tracer.Color = Color3.fromRGB(255, 255, 255)
-    tracer.Transparency = 1
-    tracer.Visible = false
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(1, 0, 1, 0)
+            frame.BackgroundTransparency = 0.5 -- Transparansi kotak
+            frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Warna MERAH
+            frame.BorderSizePixel = 2
+            frame.Parent = gui
+            
+            -- Membuat garis tepi (Outline) agar lebih jelas
+            local stroke = Instance.new("UIStroke")
+            stroke.Thickness = 2
+            stroke.Color = Color3.fromRGB(255, 255, 255) -- Putih
+            stroke.Parent = frame
 
-    local function update()
-        local connection
-        connection = RunService.RenderStepped:Connect(function()
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
-                local rootPart = player.Character.HumanoidRootPart
-                local position, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+            -- 2. Nama Pemain di atas kotak
+            local namaTag = Instance.new("TextLabel")
+            namaTag.Size = UDim2.new(1, 0, 0.2, 0)
+            namaTag.Position = UDim2.new(0, 0, -0.25, 0)
+            namaTag.BackgroundTransparency = 1
+            namaTag.Text = player.Name
+            namaTag.TextColor3 = Color3.fromRGB(255, 255, 255)
+            namaTag.TextScaled = true
+            namaTag.Parent = gui
+        end
+    end)
+end
 
-                if onScreen then
-                    -- Menghitung ukuran kotak berdasarkan jarak
-                    local size = (Camera:WorldToViewportPoint(rootPart.Position + Vector3.new(0, 3, 0)).Y - Camera:WorldToViewportPoint(rootPart.Position + Vector3.new(0, -3.5, 0)).Y)
-                    local boxSize = Vector2.new(size / 1.5, size)
-                    local boxPos = Vector2.new(position.X - boxSize.X / 2, position.Y - boxSize.Y / 2)
+-- Jalankan untuk semua orang yang sudah ada di server
+for _, p in pairs(Players:GetPlayers()) do
+    if p.Character then
+        -- Trigger manual jika karakter sudah spawn
+        task.spawn(function()
+            local root = p.Character:FindFirstChild("HumanoidRootPart")
+            if root and p ~= LocalPlayer and not root:FindFirstChild("KotakESP") then
+                local gui = Instance.new("BillboardGui")
+                gui.Name = "KotakESP"
+                gui.AlwaysOnTop = true
+                gui.Size = UDim2.new(4.5, 0, 6, 0)
+                gui.Adornee = root
+                gui.Parent = root
 
-                    box.Size = boxSize
-                    box.Position = boxPos
-                    box.Visible = true
-
-                    tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                    tracer.To = Vector2.new(position.X, position.Y)
-                    tracer.Visible = true
-                else
-                    box.Visible = false
-                    tracer.Visible = false
-                end
-            else
-                box.Visible = false
-                tracer.Visible = false
-                if not player.Parent then
-                    box:Remove()
-                    tracer:Remove()
-                    connection:Disconnect()
-                end
+                local frame = Instance.new("Frame")
+                frame.Size = UDim2.new(1, 0, 1, 0)
+                frame.BackgroundTransparency = 0.5
+                frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+                frame.Parent = gui
+                
+                local namaTag = Instance.new("TextLabel")
+                namaTag.Size = UDim2.new(1, 0, 0.2, 0)
+                namaTag.Position = UDim2.new(0, 0, -0.25, 0)
+                namaTag.BackgroundTransparency = 1
+                namaTag.Text = p.Name
+                namaTag.TextColor3 = Color3.fromRGB(255, 255, 255)
+                namaTag.TextScaled = true
+                namaTag.Parent = gui
             end
         end)
     end
-    coroutine.wrap(update)()
+    beriESP(p)
 end
 
-for _, p in pairs(Players:GetPlayers()) do
-    if p ~= LocalPlayer then createESP(p) end
-end
-Players.PlayerAdded:Connect(function(p)
-    if p ~= LocalPlayer then createESP(p) end
-end)
-
-print("ESP Box & Tracers Loaded!")
+Players.PlayerAdded:Connect(beriESP)
