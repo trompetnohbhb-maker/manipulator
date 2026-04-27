@@ -1,36 +1,39 @@
 local player = game.Players.LocalPlayer
 local runService = game:GetService("RunService")
 
--- Fungsi khusus buat hilangin badan tanpa ganggu jalan
-local function murniInvis()
+local function hideEverything()
     local char = player.Character
     if char then
-        -- Reset HipHeight biar nggak tenggelam (Fix bug tenggelam)
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then 
-            hum.HipHeight = 0 
-        end
-        
         for _, v in pairs(char:GetDescendants()) do
-            -- Hanya ubah transparansi, jangan hapus part utama
-            if v:IsA("BasePart") or v:IsA("Decal") then
+            -- Menghilangkan SelectionBox (Garis kotak Ken Haki)
+            if v:IsA("SelectionBox") or v:IsA("BoxHandleAdornment") then
+                v.Visible = false
+            end
+            
+            -- Menghilangkan Efek Aura Cahaya
+            if v:IsA("PointLight") or v:IsA("SurfaceLight") or v:IsA("SpotLight") then
+                v.Enabled = false
+            end
+
+            -- Menghilangkan Partikel & Trail
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then
+                v.Enabled = false
+            end
+
+            -- Tetap menjaga badan transparan (0.99 agar tidak speed glitch)
+            if v:IsA("BasePart") or v:IsA("MeshPart") then
                 if v.Name ~= "HumanoidRootPart" then
-                    v.Transparency = 1
+                    v.Transparency = 0.99
                 end
             end
-            -- Hapus aksesoris/baju yang bikin kelihatan
-            if v:IsA("Accessory") or v:IsA("Shirt") or v:IsA("Pants") then
+
+            -- Hapus Aksesoris yang sering muncul lagi saat ganti mode
+            if v:IsA("Accessory") then
                 v:Destroy()
             end
         end
     end
 end
 
--- Pakai task.spawn biar nggak berat di Ronix
-task.spawn(function()
-    while task.wait(1) do -- Cukup cek setiap 1 detik biar nggak lag
-        murniInvis()
-    end
-end)
-
-print("Invis Normal Aktif! Jalan harusnya sudah nggak error lagi.")
+runService.RenderStepped:Connect(hideEverything)
+print("Invis Ken Haki Aktif! Aura dan kotak deteksi sekarang hilang.")
