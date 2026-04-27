@@ -1,22 +1,18 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
--- [[ 1. RESET STATUS ]] --
+-- [[ 1. RESET & SETUP UI ]] --
 _G.AutoAttack = false
 _G.AttackRange = false
 _G.FlyAbove = false
-_G.AutoQuest = false
 
--- Hapus UI lama
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-if PlayerGui:FindFirstChild("YutaHub_V3") then PlayerGui.YutaHub_V3:Destroy() end
+if PlayerGui:FindFirstChild("YutaHub_V4") then PlayerGui.YutaHub_V4:Destroy() end
 
--- [[ 2. SETUP UI YUTA HUB 3 ]] --
 local ScreenGui = Instance.new("ScreenGui", PlayerGui)
-ScreenGui.Name = "YutaHub_V3"
+ScreenGui.Name = "YutaHub_V4"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
@@ -27,7 +23,7 @@ Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
 local Header = Instance.new("TextLabel", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 40)
-Header.Text = "YUTA HUB 3" -- NAMA UPDATE
+Header.Text = "YUTA HUB 4" -- UPDATE NAMA
 Header.TextColor3 = Color3.fromRGB(255, 255, 255)
 Header.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 Header.Font = Enum.Font.SourceSansBold
@@ -41,13 +37,13 @@ Header.InputBegan:Connect(function(input)
         dragging = true; dragStart = input.Position; startPos = MainFrame.Position
     end
 end)
-UserInputService.InputChanged:Connect(function(input)
+game:GetService("UserInputService").InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
         MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-UserInputService.InputEnded:Connect(function(input)
+game:GetService("UserInputService").InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
 end)
 
@@ -69,36 +65,47 @@ local function CreateButton(name, order, callback)
     end)
 end
 
--- [[ 3. BYPASS & HIT LOGIC ]] --
+-- [[ 2. SUPER FAST ATTACK ENGINE ]] --
 local function GetEnemy()
     local folder = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
     for _, v in pairs(folder:GetChildren()) do
-        if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+        if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < 100 then
             return v
         end
     end
 end
 
--- [[ 4. FITUR ]] --
+-- Fungsi Serang Tanpa Cooldown
+local function AttackNoCooldown()
+    pcall(function()
+        local AttackRE = ReplicatedStorage.Modules.Net:FindFirstChild("RE/Attack") or ReplicatedStorage.Modules.Net:FindFirstChild("Attack")
+        local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        if Tool and AttackRE then
+            -- Spam FireServer berkali-kali untuk Super Attack
+            AttackRE:FireServer(0.1)
+            AttackRE:FireServer(0.1)
+            AttackRE:FireServer(0.1) -- Stack 3 hit sekaligus
+            
+            -- Memicu animasi internal agar tidak dicurigai
+            if Tool:FindFirstChild("Attack") then
+                Tool.Attack:Fire()
+            end
+        end
+    end)
+end
 
--- AUTO ATTACK (Bypass Method)
+-- [[ 3. FITUR ]] --
+
+-- SUPER AUTO ATTACK (Fast Method)
 CreateButton("Auto Attack", 1, function(state)
     _G.AutoAttack = state
     task.spawn(function()
-        local Net = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Net")
-        local AttackRE = Net:WaitForChild("RE"):WaitForChild("Attack")
-        
         while _G.AutoAttack do
-            RunService.RenderStepped:Wait()
-            pcall(function()
-                local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                local Enemy = GetEnemy()
-                if Tool and Enemy then
-                    -- BYPASS: Kirim data hit langsung ke musuh terdekat
-                    AttackRE:FireServer(0.1) -- Argumen kecepatan
-                    Tool:Activate() -- Animasi pendukung
-                end
-            end)
+            -- Menggunakan Heartbeat agar hit teregistrasi sangat cepat
+            RunService.Heartbeat:Wait()
+            if _G.AutoAttack then
+                AttackNoCooldown()
+            end
         end
     end)
 end)
@@ -108,11 +115,11 @@ CreateButton("Attack Range", 2, function(state)
     _G.AttackRange = state
     task.spawn(function()
         while _G.AttackRange do
-            task.wait(0.5)
+            task.wait(1)
             pcall(function()
                 local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
                 if tool and tool:FindFirstChild("Handle") then
-                    tool.Handle.Size = Vector3.new(65, 65, 65)
+                    tool.Handle.Size = Vector3.new(80, 80, 80)
                     tool.Handle.Transparency = 0.8
                     tool.Handle.CanCollide = false
                 end
@@ -121,7 +128,7 @@ CreateButton("Attack Range", 2, function(state)
     end)
 end)
 
--- FLY ABOVE NPC (Tinggi 10 unit)
+-- FLY ABOVE NPC (Tinggi 8 Unit biar hit pas)
 CreateButton("Fly Above NPC", 3, function(state)
     _G.FlyAbove = state
     task.spawn(function()
@@ -130,7 +137,7 @@ CreateButton("Fly Above NPC", 3, function(state)
             pcall(function()
                 local Enemy = GetEnemy()
                 if Enemy and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = Enemy.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0)
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = Enemy.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0)
                 end
             end)
         end
