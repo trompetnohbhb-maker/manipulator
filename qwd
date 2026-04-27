@@ -1,79 +1,75 @@
--- [[ ESP PRO WITH KEYBIND & ANTI-ERROR ]] --
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
--- KONFIGURASI
-local _G.ESP_ENABLED = true
-local _G.ESP_KEYBIND = Enum.KeyCode.P -- Ganti "P" dengan tombol apa saja
+-- Variabel kontrol
+local espAktif = true
+local tombolKeybind = Enum.KeyCode.P -- Ganti "P" sesuai keinginan
 
 local function buatESP(player)
-    local function applyESP(char)
+    player.CharacterAdded:Connect(function(char)
         if player == LocalPlayer then return end
         
-        -- Menunggu HumanoidRootPart ada (Bypass Asset Not Found)
-        local root = char:WaitForChild("HumanoidRootPart", 10)
-        if not root then return end
+        -- Menunggu part muncul agar tidak "Asset not found"
+        local root = char:WaitForChild("HumanoidRootPart", 10) 
+        
+        if root then
+            if root:FindFirstChild("KotakESP") then root.KotakESP:Destroy() end
 
-        -- Cek biar tidak double
-        if root:FindFirstChild("ProESP") then root.ProESP:Destroy() end
+            local gui = Instance.new("BillboardGui")
+            gui.Name = "KotakESP"
+            gui.AlwaysOnTop = true
+            gui.Size = UDim2.new(4, 0, 5.5, 0)
+            gui.Adornee = root
+            gui.Enabled = espAktif -- Tergantung status ON/OFF
+            gui.Parent = root
 
-        -- Membuat GUI Kotak
-        local gui = Instance.new("BillboardGui")
-        gui.Name = "ProESP"
-        gui.AlwaysOnTop = true
-        gui.Size = UDim2.new(4, 0, 5.5, 0)
-        gui.Adornee = root
-        gui.Enabled = _G.ESP_ENABLED
-        gui.Parent = root
-
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(1, 0, 1, 0)
-        frame.BackgroundTransparency = 0.6
-        frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Warna Merah
-        frame.BorderSizePixel = 0
-        frame.Parent = gui
-
-        -- Garis Tepi (Outline) Putih
-        local stroke = Instance.new("UIStroke")
-        stroke.Thickness = 1.5
-        stroke.Color = Color3.fromRGB(255, 255, 255)
-        stroke.Parent = frame
-
-        -- Label Nama
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, 0, 0.2, 0)
-        label.Position = UDim2.new(0, 0, -0.25, 0)
-        label.BackgroundTransparency = 1
-        label.Text = player.Name
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
-        label.TextStrokeTransparency = 0
-        label.TextScaled = true
-        label.Parent = gui
-    end
-
-    if player.Character then applyESP(player.Character) end
-    player.CharacterAdded:Connect(applyESP)
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(1, 0, 1, 0)
+            frame.BackgroundTransparency = 0.6
+            frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+            frame.BorderSizePixel = 0
+            frame.Parent = gui
+            
+            local stroke = Instance.new("UIStroke")
+            stroke.Thickness = 2
+            stroke.Color = Color3.fromRGB(255, 255, 255)
+            stroke.Parent = frame
+        end
+    end)
 end
 
--- Fungsi Toggle Keybind
-UserInputService.InputBegan:Connect(function(input, chat)
-    if not chat and input.KeyCode == _G.ESP_KEYBIND then
-        _G.ESP_ENABLED = not _G.ESP_ENABLED
-        
-        -- Update semua ESP yang ada di layar
-        for _, v in pairs(Players:GetPlayers()) do
-            if v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-                local esp = v.Character.HumanoidRootPart:FindFirstChild("ProESP")
-                if esp then esp.Enabled = _G.ESP_ENABLED end
+-- Fungsi Keybind untuk ON/OFF
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == tombolKeybind then
+        espAktif = not espAktif
+        -- Update semua ESP yang sudah muncul di map
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local root = p.Character.HumanoidRootPart
+                local gui = root:FindFirstChild("KotakESP")
+                if gui then
+                    gui.Enabled = espAktif
+                end
             end
         end
-        print("ESP Status: " .. tostring(_G.ESP_ENABLED))
     end
 end)
 
--- Jalankan untuk semua pemain
-for _, p in pairs(Players:GetPlayers()) do buatESP(p) end
-Players.PlayerAdded:Connect(buatESP)
+-- Jalankan untuk pemain yang sudah ada di server
+for _, p in pairs(Players:GetPlayers()) do
+    if p.Character then
+        task.spawn(function()
+            local root = p.Character:WaitForChild("HumanoidRootPart", 5)
+            if root and p ~= LocalPlayer then
+                buatESP(p) -- Panggil fungsi utama agar logika sama
+                -- Trigger manual untuk karakter yang sudah ada
+                p.CharacterAdded:Connect(function() buatESP(p) end)
+            end
+        end)
+    end
+    buatESP(p)
+end
 
-print("ESP Pro Loaded! Tekan 'P' untuk ON/OFF")
+Players.PlayerAdded:Connect(buatESP)
+print("ESP Berhasil Dimuat! Tekan P untuk ON/OFF")
