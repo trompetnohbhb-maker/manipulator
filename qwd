@@ -3,54 +3,54 @@ local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- [[ FUNGSI CARI REMOTE AMAN ]] --
-local function GetCommF()
-    return ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
-end
-
-local function GetAttackRemote()
-    -- Coba cari di folder Modules/Net/RE/Attack (Standard Blox Fruit)
-    local path = ReplicatedStorage:FindFirstChild("Modules")
-    if path then
-        path = path:FindFirstChild("Net")
-        if path then
-            path = path:FindFirstChild("RE")
-            if path then
-                return path:FindFirstChild("Attack")
-            end
+-- [[ 1. FUNGSI PENCARI REMOTE (ANTI-ERROR) ]] --
+local AttackRemote
+local function FindAttackRemote()
+    if AttackRemote then return AttackRemote end
+    -- Mencari di lokasi umum Blox Fruits tanpa WaitForChild yang bikin macet
+    local net = ReplicatedStorage:FindFirstChild("Modules") and ReplicatedStorage.Modules:FindFirstChild("Net")
+    if net then
+        local re = net:FindFirstChild("RE") or net:FindFirstChild("RemoteEvents")
+        if re then
+            AttackRemote = re:FindFirstChild("Attack")
         end
     end
-    return nil
+    return AttackRemote
 end
 
--- [[ SETUP UI ]] --
-local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "RonixBlox_Final_Fixed"
+local MainRemote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
+
+-- [[ 2. SETUP UI UTAMA ]] --
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+if PlayerGui:FindFirstChild("RonixBlox_Final") then PlayerGui.RonixBlox_Final:Destroy() end
+
+local ScreenGui = Instance.new("ScreenGui", PlayerGui)
+ScreenGui.Name = "RonixBlox_Final"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 160, 0, 260)
-MainFrame.Position = UDim2.new(0.1, 0, 0.3, 0)
+MainFrame.Position = UDim2.new(0.5, -80, 0.4, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.ClipsDescendants = true 
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
+-- Header (Handle Drag)
 local Header = Instance.new("TextLabel", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 35)
-Header.Text = "BLOX HUB (Drag)"
+Header.Text = "RO-NIX HUB"
 Header.TextColor3 = Color3.fromRGB(255, 255, 255)
 Header.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 Header.Font = Enum.Font.SourceSansBold
 Header.Active = true
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 8)
 
--- [[ DRAG SYSTEM ]] --
-local dragging, dragStart, startPos, dragDistance
+-- Sistem Drag Sederhana
+local dragging, dragStart, startPos
 Header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
-        dragDistance = 0
         dragStart = input.Position
         startPos = MainFrame.Position
     end
@@ -58,34 +58,24 @@ end)
 UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
-        dragDistance = delta.Magnitude
         MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
     end
 end)
 
 local ContentFrame = Instance.new("Frame", MainFrame)
-ContentFrame.Size = UDim2.new(1, 0, 1, -45)
+ContentFrame.Size = UDim2.new(1, 0, 1, -40)
 ContentFrame.Position = UDim2.new(0, 0, 0, 40)
 ContentFrame.BackgroundTransparency = 1
 local Layout = Instance.new("UIListLayout", ContentFrame)
 Layout.Padding = UDim.new(0, 5)
 Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
-local collapsed = false
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        if dragging then
-            dragging = false
-            if dragDistance < 5 then
-                collapsed = not collapsed
-                MainFrame:TweenSize(collapsed and UDim2.new(0, 160, 0, 35) or UDim2.new(0, 160, 0, 260), "Out", "Quad", 0.2, true)
-                ContentFrame.Visible = not collapsed
-            end
-        end
-    end
-end)
-
--- [[ TOMBOL ]] --
+-- Fungsi Tombol
 local function CreateButton(name, order, callback)
     local btn = Instance.new("TextButton", ContentFrame)
     btn.Size = UDim2.new(0.9, 0, 0, 40)
@@ -93,7 +83,7 @@ local function CreateButton(name, order, callback)
     btn.Text = name .. ": OFF"
     btn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.SourceSans
+    btn.Font = Enum.Font.SourceSansBold
     Instance.new("UICorner", btn)
 
     local active = false
@@ -105,30 +95,15 @@ local function CreateButton(name, order, callback)
     end)
 end
 
--- [[ LOGIKA FITUR ]] --
-local function GetNearestEnemy()
-    local target = nil
-    local dist = 500 -- Jarak maksimal cari musuh
-    for _, v in pairs(workspace.Enemies:GetChildren()) do
-        if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
-            local mag = (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-            if mag < dist then
-                dist = mag
-                target = v
-            end
-        end
-    end
-    return target
-end
+-- [[ 3. LOGIKA FITUR ]] --
 
--- 1. AUTO ATTACK
-local _AA = false
-CreateButton("Auto Attack", 1, function(s)
-    _AA = s
+-- Auto Attack
+CreateButton("Auto Attack", 1, function(state)
+    _G.AA = state
     task.spawn(function()
-        while _AA do
-            local remote = GetAttackRemote()
-            local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        while _G.AA do
+            local remote = FindAttackRemote()
+            local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
             if remote and tool then
                 remote:FireServer(0.1)
                 tool:Activate()
@@ -138,35 +113,35 @@ CreateButton("Auto Attack", 1, function(s)
     end)
 end)
 
--- 2. FLY ABOVE
-local _Fly = false
-CreateButton("Fly Above NPC", 2, function(s)
-    _Fly = s
+-- Fly Above NPC
+CreateButton("Fly Above NPC", 2, function(state)
+    _G.Fly = state
     task.spawn(function()
-        while _Fly do
-            local enemy = GetNearestEnemy()
-            if enemy and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
-            end
+        while _G.Fly do
+            pcall(function()
+                for _, v in pairs(workspace.Enemies:GetChildren()) do
+                    if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
+                        break
+                    end
+                end
+            end)
             task.wait()
         end
     end)
 end)
 
--- 3. AUTO QUEST
-local _Quest = false
-CreateButton("Auto Quest", 3, function(s)
-    _Quest = s
+-- Auto Quest (Bandit Test)
+CreateButton("Auto Quest", 3, function(state)
+    _G.Quest = state
     task.spawn(function()
-        while _Quest do
-            local comm = GetCommF()
-            if comm and (not LocalPlayer.PlayerGui.Main.Quest.Visible) then
-                -- Contoh sederhana Bandit (Level 1)
-                comm:InvokeServer("StartQuest", "BanditQuest1", 1)
+        while _G.Quest do
+            if MainRemote and not LocalPlayer.PlayerGui.Main.Quest.Visible then
+                MainRemote:InvokeServer("StartQuest", "BanditQuest1", 1)
             end
             task.wait(2)
         end
     end)
 end)
 
-print("Script Aktif! Pastikan kamu sudah memegang SENJATA agar Auto Attack jalan.")
+print("UI Berhasil Dimuat tanpa Infinite Yield!")
