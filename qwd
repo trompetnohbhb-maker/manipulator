@@ -1,78 +1,63 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
-local function beriESP(player)
+local function buatESP(player)
     player.CharacterAdded:Connect(function(char)
         if player == LocalPlayer then return end
         
-        local root = char:WaitForChild("HumanoidRootPart", 10)
+        -- Bypass "Asset not found" dengan menunggu part muncul (max 10 detik)
+        local root = char:WaitForChild("HumanoidRootPart", 10) 
+        
         if root then
-            -- 1. Membuat Box Berwarna (Tembus Dinding)
+            -- Cek jika sudah ada ESP agar tidak tumpuk
+            if root:FindFirstChild("KotakESP") then return end
+
             local gui = Instance.new("BillboardGui")
             gui.Name = "KotakESP"
-            gui.AlwaysOnTop = true -- Ini yang bikin tembus dinding
-            gui.Size = UDim2.new(4.5, 0, 6, 0) -- Ukuran kotak menutupi badan
+            gui.AlwaysOnTop = true
+            gui.Size = UDim2.new(4, 0, 5.5, 0)
             gui.Adornee = root
             gui.Parent = root
 
             local frame = Instance.new("Frame")
             frame.Size = UDim2.new(1, 0, 1, 0)
-            frame.BackgroundTransparency = 0.5 -- Transparansi kotak
+            frame.BackgroundTransparency = 0.6
             frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Warna MERAH
-            frame.BorderSizePixel = 2
+            frame.BorderSizePixel = 0
             frame.Parent = gui
             
-            -- Membuat garis tepi (Outline) agar lebih jelas
+            -- Tambah garis tepi biar kelihatan jelas
             local stroke = Instance.new("UIStroke")
             stroke.Thickness = 2
-            stroke.Color = Color3.fromRGB(255, 255, 255) -- Putih
+            stroke.Color = Color3.fromRGB(255, 255, 255)
             stroke.Parent = frame
-
-            -- 2. Nama Pemain di atas kotak
-            local namaTag = Instance.new("TextLabel")
-            namaTag.Size = UDim2.new(1, 0, 0.2, 0)
-            namaTag.Position = UDim2.new(0, 0, -0.25, 0)
-            namaTag.BackgroundTransparency = 1
-            namaTag.Text = player.Name
-            namaTag.TextColor3 = Color3.fromRGB(255, 255, 255)
-            namaTag.TextScaled = true
-            namaTag.Parent = gui
         end
     end)
 end
 
--- Jalankan untuk semua orang yang sudah ada di server
+-- Jalankan untuk semua pemain yang sudah ada
 for _, p in pairs(Players:GetPlayers()) do
     if p.Character then
-        -- Trigger manual jika karakter sudah spawn
         task.spawn(function()
-            local root = p.Character:FindFirstChild("HumanoidRootPart")
+            local char = p.Character
+            local root = char:WaitForChild("HumanoidRootPart", 5)
             if root and p ~= LocalPlayer and not root:FindFirstChild("KotakESP") then
                 local gui = Instance.new("BillboardGui")
                 gui.Name = "KotakESP"
                 gui.AlwaysOnTop = true
-                gui.Size = UDim2.new(4.5, 0, 6, 0)
+                gui.Size = UDim2.new(4, 0, 5.5, 0)
                 gui.Adornee = root
                 gui.Parent = root
-
+                
                 local frame = Instance.new("Frame")
                 frame.Size = UDim2.new(1, 0, 1, 0)
-                frame.BackgroundTransparency = 0.5
+                frame.BackgroundTransparency = 0.6
                 frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
                 frame.Parent = gui
-                
-                local namaTag = Instance.new("TextLabel")
-                namaTag.Size = UDim2.new(1, 0, 0.2, 0)
-                namaTag.Position = UDim2.new(0, 0, -0.25, 0)
-                namaTag.BackgroundTransparency = 1
-                namaTag.Text = p.Name
-                namaTag.TextColor3 = Color3.fromRGB(255, 255, 255)
-                namaTag.TextScaled = true
-                namaTag.Parent = gui
             end
         end)
     end
-    beriESP(p)
+    buatESP(p)
 end
 
-Players.PlayerAdded:Connect(beriESP)
+Players.PlayerAdded:Connect(buatESP)
