@@ -5,21 +5,28 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 -- KONFIGURASI
-local AimSettings = {
-    Enabled = true,
-    AimPart = "Head",
-    FOV_Radius = 900, -- Ukuran lingkaran FOV
-    AimKey = Enum.UserInputType.MouseButton1 -- Klik Kiri
-}
+local FOV_RADIUS = 600 -- Ukuran lingkaran
+local AIM_PART = "Head"
 
--- [[ 1. VISUALISASI FOV (LINGKARAN) ]] --
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 2
-FOVCircle.Color = Color3.fromRGB(255, 255, 255) -- Warna Putih
-FOVCircle.Transparency = 1
-FOVCircle.Filled = false
-FOVCircle.Visible = true
-FOVCircle.Radius = AimSettings.FOV_Radius
+-- [[ 1. BUAT LINGKARAN FOV PAKAI GUI (PASTI MUNCUL) ]] --
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+ScreenGui.Name = "FOVScreen"
+ScreenGui.ResetOnSpawn = false
+
+local FOVFrame = Instance.new("Frame", ScreenGui)
+FOVFrame.Name = "FOVCircle"
+FOVFrame.Size = UDim2.new(0, FOV_RADIUS * 2, 0, FOV_RADIUS * 2)
+FOVFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+FOVFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+FOVFrame.BackgroundTransparency = 1
+FOVFrame.BorderSizePixel = 0
+
+local UIStroke = Instance.new("UIStroke", FOVFrame)
+UIStroke.Thickness = 2
+UIStroke.Color = Color3.fromRGB(255, 255, 255) -- Warna Putih
+
+local UICorner = Instance.new("UICorner", FOVFrame)
+UICorner.CornerRadius = UDim.new(1, 0) -- Biar jadi lingkaran sempurna
 
 -- [[ 2. ESP STABIL (LOGIKA ASLI KAMU) ]] --
 local function buatESP(player)
@@ -46,17 +53,16 @@ end
 -- [[ 3. LOGIKA INSTANT AIM ]] --
 local function getClosestPlayer()
     local target = nil
-    local shortestDistance = AimSettings.FOV_Radius
+    local shortestDistance = FOV_RADIUS
+    local mousePos = UserInputService:GetMouseLocation()
 
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(AimSettings.AimPart) then
-            local part = player.Character[AimSettings.AimPart]
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(AIM_PART) then
+            local part = player.Character[AIM_PART]
             local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
             
             if onScreen then
-                local mousePos = UserInputService:GetMouseLocation()
                 local distance = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
-                
                 if distance < shortestDistance then
                     target = part
                     shortestDistance = distance
@@ -68,14 +74,14 @@ local function getClosestPlayer()
 end
 
 RunService.RenderStepped:Connect(function()
-    -- Update posisi dan visibilitas lingkaran FOV
-    FOVCircle.Position = UserInputService:GetMouseLocation()
-    FOVCircle.Radius = AimSettings.FOV_Radius
-    
-    if AimSettings.Enabled and UserInputService:IsMouseButtonPressed(AimSettings.AimKey) then
+    -- Update posisi lingkaran ke tengah mouse
+    local mousePos = UserInputService:GetMouseLocation()
+    FOVFrame.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
+
+    -- Kunci Instan Pas Nembak (Klik Kiri)
+    if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
         local target = getClosestPlayer()
         if target then
-            -- INSTANT LOCK (Tanpa Smooth)
             Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
         end
     end
