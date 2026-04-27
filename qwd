@@ -1,23 +1,31 @@
 local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
+local runService = game:GetService("RunService")
 
--- Langsung menghilang saat script dijalankan
-for _, v in pairs(character:GetDescendants()) do
-    if v:IsA("BasePart") or v:IsA("Decal") then
-        if v.Name ~= "HumanoidRootPart" then
-            v.Transparency = 0.1
+-- Fungsi maksa transparan
+local function makeUltraInvis()
+    local char = player.Character
+    if char then
+        for _, v in pairs(char:GetDescendants()) do
+            -- Menghilangkan part tubuh, decal (muka), dan baju 3D
+            if v:IsA("BasePart") or v:IsA("Decal") or v:IsA("Texture") or v:IsA("MeshPart") then
+                if v.Name ~= "HumanoidRootPart" then
+                    v.Transparency = 1
+                end
+            end
+            -- Menghilangkan baju klasik (Shirt/Pants)
+            if v:IsA("Shirt") or v:IsA("Pants") or v:IsA("GraphicTShirt") or v:IsA("ShirtGraphic") then
+                v:Destroy()
+            end
+            -- Menghilangkan aksesoris (rambut, topi, tas)
+            if v:IsA("Accessory") then
+                local handle = v:FindFirstChild("Handle")
+                if handle then handle.Transparency = 1 end
+            end
         end
     end
 end
 
--- Menghilangkan aksesoris (topi, rambut, dll)
-for _, v in pairs(character:GetChildren()) do
-    if v:IsA("Accessory") then
-        local handle = v:FindFirstChild("Handle")
-        if handle then
-            handle.Transparency = 1
-        end
-    end
-end
+-- Jalankan terus setiap frame supaya nggak muncul lagi (Anti-Reset Visual)
+runService.RenderStepped:Connect(makeUltraInvis)
 
-print("Invis aktif! Player lain tidak bisa melihat badanmu.")
+print("Ultra Invis Aktif! Harusnya sekarang sudah hilang total.")
