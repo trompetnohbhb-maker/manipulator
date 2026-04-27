@@ -3,31 +3,39 @@ local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
+local RunService = game:GetService("RunService")
 
--- [[ 1. SETUP UI ]] --
+-- [[ 1. RESET SEMUA FITUR LAMA (PENTING) ]] --
+_G.AutoAttack = false
+_G.AttackRange = false
+_G.FlyAbove = false
+_G.AutoQuest = false
+
+-- Hapus UI lama agar tidak tumpuk
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-if PlayerGui:FindFirstChild("YutaHub_V6") then PlayerGui.YutaHub_V6:Destroy() end
+if PlayerGui:FindFirstChild("YutaHub_V7") then PlayerGui.YutaHub_V7:Destroy() end
 
+-- [[ 2. SETUP UI UTAMA ]] --
 local ScreenGui = Instance.new("ScreenGui", PlayerGui)
-ScreenGui.Name = "YutaHub_V6"
+ScreenGui.Name = "YutaHub_V7"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 160, 0, 260)
 MainFrame.Position = UDim2.new(0.5, -80, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
 local Header = Instance.new("TextLabel", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 40)
-Header.Text = "YUTA HUB V6"
+Header.Text = "YUTA HUB V7"
 Header.TextColor3 = Color3.fromRGB(255, 255, 255)
-Header.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+Header.BackgroundColor3 = Color3.fromRGB(130, 0, 0)
 Header.Font = Enum.Font.SourceSansBold
 Header.TextSize = 16
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 10)
 
--- Drag System
+-- Smooth Drag System
 local dragging, dragStart, startPos
 Header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -48,6 +56,7 @@ local ButtonHolder = Instance.new("Frame", MainFrame)
 ButtonHolder.Size = UDim2.new(1, 0, 1, -45); ButtonHolder.Position = UDim2.new(0, 0, 0, 45); ButtonHolder.BackgroundTransparency = 1
 local Layout = Instance.new("UIListLayout", ButtonHolder); Layout.Padding = UDim.new(0, 7); Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
+-- Fungsi Tombol
 local function CreateButton(name, order, callback)
     local btn = Instance.new("TextButton", ButtonHolder)
     btn.Size = UDim2.new(0.9, 0, 0, 40); btn.LayoutOrder = order; btn.Text = name .. ": OFF"
@@ -58,11 +67,11 @@ local function CreateButton(name, order, callback)
         active = not active
         btn.Text = name .. (active and ": ON" or ": OFF")
         btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(40, 40, 40)
-        task.spawn(function() callback(active) end)
+        callback(active)
     end)
 end
 
--- [[ 2. CORE LOGIC ]] --
+-- [[ 3. LOGIKA FITUR ]] --
 
 -- Fungsi Cari Musuh
 local function GetEnemy()
@@ -80,72 +89,75 @@ local function GetEnemy()
     return target
 end
 
--- A. Auto Attack (Hybrid)
-_G.AA = false
+-- A. Auto Attack (Fast Click Method)
 CreateButton("Auto Attack", 1, function(state)
-    _G.AA = state
-    local AttackRemote = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE"):WaitForChild("Attack")
-    while _G.AA do
-        task.wait(0.01)
-        pcall(function()
-            local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-            if tool then
-                VirtualUser:CaptureController()
-                VirtualUser:ClickButton1(Vector2.new(0,0))
-                AttackRemote:FireServer(0.1)
-            end
-        end)
-    end
+    _G.AutoAttack = state
+    task.spawn(function()
+        while _G.AutoAttack do
+            RunService.Stepped:Wait() -- Loop secepat mungkin
+            pcall(function()
+                local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                if tool then
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton1(Vector2.new(0,0)) -- Simulasi Klik
+                end
+            end)
+        end
+    end)
 end)
 
--- B. Attack Range (Tool Hitbox)
-_G.Range = false
+-- B. Attack Range (Big Tool Hitbox)
 CreateButton("Attack Range", 2, function(state)
-    _G.Range = state
-    while _G.Range do
-        task.wait(1)
-        pcall(function()
-            local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-            if tool then
-                for _, p in pairs(tool:GetDescendants()) do
-                    if p:IsA("BasePart") then
-                        p.Size = _G.Range and Vector3.new(45, 45, 45) or Vector3.new(1, 1, 1) -- Perbesar senjata
-                        p.Transparency = _G.Range and 0.8 or 0
-                        p.CanCollide = false
+    _G.AttackRange = state
+    task.spawn(function()
+        while _G.AttackRange do
+            task.wait(1)
+            pcall(function()
+                local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                if tool then
+                    for _, p in pairs(tool:GetDescendants()) do
+                        if p:IsA("BasePart") then
+                            p.Size = Vector3.new(50, 50, 50)
+                            p.Transparency = 0.8
+                            p.CanCollide = false
+                        end
                     end
                 end
-            end
-        end)
-    end
+            end)
+        end
+    end)
 end)
 
--- C. Fly Above NPC (Tinggi 10 Unit)
-_G.Fly = false
+-- C. Fly Above NPC (Tinggi 10 Unit PAS)
 CreateButton("Fly Above NPC", 3, function(state)
-    _G.Fly = state
-    while _G.Fly do
-        task.wait()
-        pcall(function()
-            local target = GetEnemy()
-            if target and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                -- Pas 10 unit di atas target
-                LocalPlayer.Character.HumanoidRootPart.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
-            end
-        end)
-    end
+    _G.FlyAbove = state
+    task.spawn(function()
+        while _G.FlyAbove do
+            RunService.Heartbeat:Wait()
+            pcall(function()
+                local target = GetEnemy()
+                local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if target and root then
+                    -- Maksa posisi di 10 unit di atas target
+                    root.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
+                end
+            end)
+        end
+    end)
 end)
 
 -- D. Auto Quest
-_G.Quest = false
 CreateButton("Auto Quest", 4, function(state)
-    _G.Quest = state
-    while _G.Quest do
-        task.wait(1.5)
-        pcall(function()
-            local comm = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
+    _G.AutoQuest = state
+    task.spawn(function()
+        local comm = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
+        while _G.AutoQuest do
             if comm and not LocalPlayer.PlayerGui.Main.Quest.Visible then
                 comm:InvokeServer("StartQuest", "BanditQuest1", 1)
             end
-        end)
-    end
+            task.wait(1.5)
+        end
+    end)
 end)
+
+print("Yuta Hub V7 Berhasil Dimuat!")
