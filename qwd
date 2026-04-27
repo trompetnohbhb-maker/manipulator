@@ -87,7 +87,7 @@ local function CreateButton(name, order)
 end
 
 CreateButton("Auto Attack", 1)
-CreateButton("Kill Aura", 2)
+CreateButton("Attack Range", 2)
 CreateButton("Fly Above NPC", 3)
 CreateButton("Auto Quest", 4)
 
