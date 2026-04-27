@@ -4,21 +4,26 @@ local LocalPlayer = Players.LocalPlayer
 local function buatESP(player)
     player.CharacterAdded:Connect(function(char)
         if player == LocalPlayer then return end
+        
         local root = char:WaitForChild("HumanoidRootPart", 10) 
+        
         if root then
-            if root:FindFirstChild("KotakESP") then root.KotakESP:Destroy() end
+            if root:FindFirstChild("KotakESP") then return end
+
             local gui = Instance.new("BillboardGui")
             gui.Name = "KotakESP"
             gui.AlwaysOnTop = true
             gui.Size = UDim2.new(4, 0, 5.5, 0)
             gui.Adornee = root
             gui.Parent = root
+
             local frame = Instance.new("Frame")
             frame.Size = UDim2.new(1, 0, 1, 0)
             frame.BackgroundTransparency = 0.6
             frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
             frame.BorderSizePixel = 0
             frame.Parent = gui
+            
             local stroke = Instance.new("UIStroke")
             stroke.Thickness = 2
             stroke.Color = Color3.fromRGB(255, 255, 255)
@@ -39,11 +44,13 @@ for _, p in pairs(Players:GetPlayers()) do
                 gui.Size = UDim2.new(4, 0, 5.5, 0)
                 gui.Adornee = root
                 gui.Parent = root
+                
                 local frame = Instance.new("Frame")
                 frame.Size = UDim2.new(1, 0, 1, 0)
                 frame.BackgroundTransparency = 0.6
                 frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
                 frame.Parent = gui
+                
                 local stroke = Instance.new("UIStroke")
                 stroke.Thickness = 2
                 stroke.Color = Color3.fromRGB(255, 255, 255)
