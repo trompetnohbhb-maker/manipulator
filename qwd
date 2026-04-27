@@ -3,39 +3,50 @@ local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- [[ REMOTE UTAMA BLOX FRUITS ]] --
-local AttackRemote = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE"):WaitForChild("Attack")
-local MainRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
+-- [[ FUNGSI CARI REMOTE AMAN ]] --
+local function GetCommF()
+    return ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
+end
 
--- [[ 1. SETUP UI ]] --
+local function GetAttackRemote()
+    -- Coba cari di folder Modules/Net/RE/Attack (Standard Blox Fruit)
+    local path = ReplicatedStorage:FindFirstChild("Modules")
+    if path then
+        path = path:FindFirstChild("Net")
+        if path then
+            path = path:FindFirstChild("RE")
+            if path then
+                return path:FindFirstChild("Attack")
+            end
+        end
+    end
+    return nil
+end
+
+-- [[ SETUP UI ]] --
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
 ScreenGui.Name = "RonixBlox_Final_Fixed"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 160, 0, 260) -- UKURAN DITINGKATKAN AGAR MUAT 4 TOMBOL
+MainFrame.Size = UDim2.new(0, 160, 0, 260)
 MainFrame.Position = UDim2.new(0.1, 0, 0.3, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.ClipsDescendants = true 
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
--- Header (Handle Drag & Klik)
 local Header = Instance.new("TextLabel", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 35)
 Header.Text = "BLOX HUB (Drag)"
 Header.TextColor3 = Color3.fromRGB(255, 255, 255)
 Header.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 Header.Font = Enum.Font.SourceSansBold
-Header.TextSize = 14
 Header.Active = true
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 8)
 
--- [[ 2. SISTEM DRAG & COLLAPSE ]] --
+-- [[ DRAG SYSTEM ]] --
 local dragging, dragStart, startPos, dragDistance
-local collapsed = false
-
 Header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
@@ -44,7 +55,6 @@ Header.InputBegan:Connect(function(input)
         startPos = MainFrame.Position
     end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
@@ -61,13 +71,13 @@ local Layout = Instance.new("UIListLayout", ContentFrame)
 Layout.Padding = UDim.new(0, 5)
 Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
+local collapsed = false
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         if dragging then
             dragging = false
             if dragDistance < 5 then
                 collapsed = not collapsed
-                -- Animasi tutup menyesuaikan ukuran baru
                 MainFrame:TweenSize(collapsed and UDim2.new(0, 160, 0, 35) or UDim2.new(0, 160, 0, 260), "Out", "Quad", 0.2, true)
                 ContentFrame.Visible = not collapsed
             end
@@ -75,16 +85,15 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- [[ 3. FUNGSI TOMBOL ]] --
+-- [[ TOMBOL ]] --
 local function CreateButton(name, order, callback)
     local btn = Instance.new("TextButton", ContentFrame)
-    btn.Size = UDim2.new(0.9, 0, 0, 40) -- Tombol sedikit lebih besar agar enak di-klik
+    btn.Size = UDim2.new(0.9, 0, 0, 40)
     btn.LayoutOrder = order
     btn.Text = name .. ": OFF"
     btn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.SourceSans
-    btn.TextSize = 13
     Instance.new("UICorner", btn)
 
     local active = false
@@ -96,36 +105,32 @@ local function CreateButton(name, order, callback)
     end)
 end
 
--- [[ 4. LOGIKA FITUR ]] --
-
+-- [[ LOGIKA FITUR ]] --
 local function GetNearestEnemy()
     local target = nil
-    local dist = math.huge
-    local folder = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
-    if folder then
-        for _, v in pairs(folder:GetChildren()) do
-            if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
-                local magnitude = (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                if magnitude < dist then
-                    dist = magnitude
-                    target = v
-                end
+    local dist = 500 -- Jarak maksimal cari musuh
+    for _, v in pairs(workspace.Enemies:GetChildren()) do
+        if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
+            local mag = (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            if mag < dist then
+                dist = mag
+                target = v
             end
         end
     end
     return target
 end
 
--- 1. Auto Attack
-local FastAttack = false
-CreateButton("Auto Attack", 1, function(state)
-    FastAttack = state
+-- 1. AUTO ATTACK
+local _AA = false
+CreateButton("Auto Attack", 1, function(s)
+    _AA = s
     task.spawn(function()
-        while FastAttack do
+        while _AA do
+            local remote = GetAttackRemote()
             local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-            if tool then
-                AttackRemote:FireServer(0.1)
-                AttackRemote:FireServer(0.1)
+            if remote and tool then
+                remote:FireServer(0.1)
                 tool:Activate()
             end
             task.wait(0.1)
@@ -133,30 +138,12 @@ CreateButton("Auto Attack", 1, function(state)
     end)
 end)
 
--- 2. Attack Range (Memperbesar Hitbox)
-local RangeActive = false
-CreateButton("Attack Range", 2, function(state)
-    RangeActive = state
+-- 2. FLY ABOVE
+local _Fly = false
+CreateButton("Fly Above NPC", 2, function(s)
+    _Fly = s
     task.spawn(function()
-        while RangeActive do
-            pcall(function()
-                local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                if tool and tool:FindFirstChild("Handle") then
-                    tool.Handle.Size = Vector3.new(20, 20, 20) -- Jangkauan jadi besar
-                    tool.Handle.Transparency = 0.8
-                end
-            end)
-            task.wait(1)
-        end
-    end)
-end)
-
--- 3. Fly Above NPC
-local FlyNPC = false
-CreateButton("Fly Above NPC", 3, function(state)
-    FlyNPC = state
-    task.spawn(function()
-        while FlyNPC do
+        while _Fly do
             local enemy = GetNearestEnemy()
             if enemy and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                 LocalPlayer.Character.HumanoidRootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
@@ -166,29 +153,20 @@ CreateButton("Fly Above NPC", 3, function(state)
     end)
 end)
 
--- 4. Auto Quest
-local function GetQuestData()
-    local level = LocalPlayer.Data.Level.Value
-    if level >= 0 and level < 10 then return "BanditQuest1", 1
-    elseif level >= 10 and level < 15 then return "MonkeyQuest1", 1
-    elseif level >= 15 and level < 30 then return "MonkeyQuest1", 2
-    elseif level >= 30 and level < 40 then return "PirateIslandQuest", 1
-    elseif level >= 40 and level < 60 then return "PirateIslandQuest", 2
-    else return "BanditQuest1", 1 end
-end
-
-local AutoQuest = false
-CreateButton("Auto Quest", 4, function(state)
-    AutoQuest = state
+-- 3. AUTO QUEST
+local _Quest = false
+CreateButton("Auto Quest", 3, function(s)
+    _Quest = s
     task.spawn(function()
-        while AutoQuest do
-            if not LocalPlayer.PlayerGui.Main:FindFirstChild("Quest") or LocalPlayer.PlayerGui.Main.Quest.Visible == false then
-                local qName, qId = GetQuestData()
-                MainRemote:InvokeServer("StartQuest", qName, qId)
+        while _Quest do
+            local comm = GetCommF()
+            if comm and (not LocalPlayer.PlayerGui.Main.Quest.Visible) then
+                -- Contoh sederhana Bandit (Level 1)
+                comm:InvokeServer("StartQuest", "BanditQuest1", 1)
             end
-            task.wait(1)
+            task.wait(2)
         end
     end)
 end)
 
-print("UI diperbaiki, semua tombol sekarang terlihat!")
+print("Script Aktif! Pastikan kamu sudah memegang SENJATA agar Auto Attack jalan.")
