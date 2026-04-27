@@ -110,8 +110,7 @@ CreateButton("Auto Attack", 1, function(state)
                 local tool = char and char:FindFirstChildOfClass("Tool")
                 
                 if tool then
-                    -- Kirim sinyal serang 3x sekaligus (Sangat Cepat)
-                    AttackRemote:FireServer(0.1)
+                    -- Kirim sinyal serang 2x sekaligus (Sangat Cepat)
                     AttackRemote:FireServer(0.1)
                     AttackRemote:FireServer(0.1)
                     
