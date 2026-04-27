@@ -1,67 +1,74 @@
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
+local UserInputService = game:GetService("UserInputService")
+local _G.InvisActive = false
 
--- Wadah UI
+-- [[ UI TOMBOL ON/OFF DRAGGABLE ]] --
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "FinalFinder"
+ScreenGui.Name = "InvisMenu"
 ScreenGui.ResetOnSpawn = false
 
-local function beriESP(root, pName)
-    if root:FindFirstChild("KotakESP") then return end
+local Button = Instance.new("TextButton", ScreenGui)
+Button.Size = UDim2.new(0, 120, 0, 40)
+Button.Position = UDim2.new(0.5, -60, 0.2, 0)
+Button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Button.Text = "INVIS: OFF"
+Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+Button.Font = Enum.Font.SourceSansBold
+Button.TextSize = 16
+
+-- Fitur Drag Manual
+local dragging, dragInput, dragStart, startPos
+Button.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true; dragStart = input.Position; startPos = Button.Position
+	end
+end)
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - dragStart
+		Button.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+
+-- [[ LOGIKA INVISIBLE ]] --
+local function setInvis(state)
+	local char = LocalPlayer.Character
+	if not char then return end
+	
+	local transparency = state and 1 or 0
+	
+	for _, v in pairs(char:GetDescendants()) do
+		if v:IsA("BasePart") or v:IsA("Decal") then
+			if v.Name ~= "HumanoidRootPart" then
+				v.Transparency = transparency
+			end
+		end
+	end
     
-    local gui = Instance.new("BillboardGui", root)
-    gui.Name = "KotakESP"
-    gui.AlwaysOnTop = true
-    gui.Size = UDim2.new(4, 0, 5.5, 0)
-    
-    local frame = Instance.new("Frame", gui)
-    frame.Size = UDim2.new(1, 0, 1, 0)
-    frame.BackgroundTransparency = 0.5
-    frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    Instance.new("UIStroke", frame).Color = Color3.fromRGB(255, 255, 255)
-
-    -- Tracers (Garis)
-    local line = Instance.new("Frame", ScreenGui)
-    line.BorderSizePixel = 0
-    line.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    line.AnchorPoint = Vector2.new(0.5, 0.5)
-
-    RunService.RenderStepped:Connect(function()
-        if root and root.Parent then
-            local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
-            if onScreen then
-                local start = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
-                local endP = Vector2.new(pos.X, pos.Y)
-                line.Visible = true
-                line.Size = UDim2.new(0, 1.5, 0, (start - endP).Magnitude)
-                line.Position = UDim2.new(0, (start.X + endP.X)/2, 0, (start.Y + endP.Y)/2)
-                line.Rotation = math.deg(math.atan2(endP.Y - start.Y, endP.X - start.X)) - 90
-            else
-                line.Visible = false
-            end
-        else
-            line:Destroy()
-        end
-    end)
-end
-
--- LOOP BRUTAL: Cari nama player di seluruh Workspace
-task.spawn(function()
-    while task.wait(1) do
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer then
-                -- Cari objek di Workspace yang namanya sama dengan Player
-                for _, obj in pairs(workspace:GetDescendants()) do
-                    if obj.Name == p.Name or (obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj.Name ~= LocalPlayer.Name) then
-                        local part = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Head") or obj:FindFirstChildOfClass("Part")
-                        if part then
-                            beriESP(part, p.Name)
-                        end
-                    end
-                end
-            end
+    -- Menghilangkan Tag Nama di atas kepala (jika ada)
+    local head = char:FindFirstChild("Head")
+    if head then
+        for _, v in pairs(head:GetDescendants()) do
+            if v:IsA("BillboardGui") then v.Enabled = not state end
         end
     end
+end
+
+Button.MouseButton1Click:Connect(function()
+	_G.InvisActive = not _G.InvisActive
+	Button.Text = _G.InvisActive and "INVIS: ON" or "INVIS: OFF"
+	Button.BackgroundColor3 = _G.InvisActive and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+	setInvis(_G.InvisActive)
+end)
+
+-- Pastikan tetap invis kalau respawn
+LocalPlayer.CharacterAdded:Connect(function()
+	task.wait(1)
+	if _G.InvisActive then setInvis(true) end
 end)
