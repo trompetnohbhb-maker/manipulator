@@ -1,32 +1,36 @@
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
+local player = game.Players.LocalPlayer
+local runService = game:GetService("RunService")
 
--- Fungsi Invisible Total
-local function sailorInvis()
-    local char = LocalPlayer.Character
+-- Fungsi khusus buat hilangin badan tanpa ganggu jalan
+local function murniInvis()
+    local char = player.Character
     if char then
-        -- Menghapus semua part visual
+        -- Reset HipHeight biar nggak tenggelam (Fix bug tenggelam)
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then 
+            hum.HipHeight = 0 
+        end
+        
         for _, v in pairs(char:GetDescendants()) do
-            if v:IsA("BasePart") or v:IsA("Decal") or v:IsA("MeshPart") or v:IsA("Texture") then
+            -- Hanya ubah transparansi, jangan hapus part utama
+            if v:IsA("BasePart") or v:IsA("Decal") then
                 if v.Name ~= "HumanoidRootPart" then
                     v.Transparency = 1
                 end
             end
-            -- Menghilangkan Armor, Jubah, dan Aksesoris One Piece
-            if v:IsA("Accessory") or v:IsA("Shirt") or v:IsA("Pants") or v:IsA("Clothing") then
+            -- Hapus aksesoris/baju yang bikin kelihatan
+            if v:IsA("Accessory") or v:IsA("Shirt") or v:IsA("Pants") then
                 v:Destroy()
-            end
-            -- Menghilangkan partikel buah iblis (efek aura)
-            if v:IsA("ParticleEmitter") or v:IsA("Trail") then
-                v.Enabled = false
             end
         end
     end
 end
 
--- Menjalankan secara berulang (Supaya tidak muncul lagi saat ganti item)
-local connection = RunService.RenderStepped:Connect(sailorInvis)
+-- Pakai task.spawn biar nggak berat di Ronix
+task.spawn(function()
+    while task.wait(1) do -- Cukup cek setiap 1 detik biar nggak lag
+        murniInvis()
+    end
+end)
 
--- Pesan untuk memastikan script jalan
-print("Sailor Piece Invisible Aktif!")
+print("Invis Normal Aktif! Jalan harusnya sudah nggak error lagi.")
