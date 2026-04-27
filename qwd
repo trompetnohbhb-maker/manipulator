@@ -1,21 +1,39 @@
-local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hum = char:WaitForChild("Humanoid")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
--- SETTING KEDALAMAN (Makin gede angkanya, makin dalem tenggelamnya)
-local kedalaman = 7 
+local kedalaman = 7 -- Seberapa dalam di bawah tanah
+local speed = 50 -- Kecepatan gerak
 
--- 1. Membuat karakter tenggelam tapi tetap bisa jalan
-hum.HipHeight = -kedalaman
+local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local root = char:WaitForChild("HumanoidRootPart")
 
--- 2. Mematikan tabrakan agar tidak mental saat gesek lantai
-local runService = game:GetService("RunService")
-runService.Stepped:Connect(function()
+-- 1. Pindahkan posisi ke bawah lantai
+root.CFrame = root.CFrame * CFrame.new(0, -kedalaman, 0)
+
+-- 2. Logika Gerak Bebas (Fly Bypass)
+RunService.Stepped:Connect(function(dt)
+    -- Matikan tabrakan agar bisa nembus apa aja
     for _, v in pairs(char:GetDescendants()) do
-        if v:IsA("BasePart") then
-            v.CanCollide = false
-        end
+        if v:IsA("BasePart") then v.CanCollide = false end
     end
+    
+    -- Paksa posisi tetap di bawah (Biar gak mental ke atas)
+    local dir = Vector3.new(0,0,0)
+    if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + Camera.CFrame.LookVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - Camera.CFrame.LookVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - Camera.CFrame.RightVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + Camera.CFrame.RightVector end
+    
+    if dir.Magnitude > 0 then
+        -- Gerak horizontal saja agar kedalaman tetap stabil
+        root.CFrame = root.CFrame + (Vector3.new(dir.X, 0, dir.Z).Unit * speed * dt)
+    end
+    
+    -- Mengunci gravitasi agar tidak jatuh ke void
+    root.Velocity = Vector3.new(0, 0, 0)
 end)
 
-print("Tenggelam aktif! Kamu bisa jalan di bawah lantai sekarang.")
+print("Underground Fly Aktif! Gunakan WASD untuk gerak di bawah tanah.")
