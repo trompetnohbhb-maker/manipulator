@@ -1,0 +1,23 @@
+local function createESP(part)
+	-- Membuat Highlight (Fitur bawaan Roblox untuk efek garis tepi)
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "ESP_Effect"
+	highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Warna merah
+	highlight.FillTransparency = 0.5 -- Transparansi isi
+	highlight.OutlineColor = Color3.fromRGB(255, 255, 255) -- Garis tepi putih
+	highlight.Parent = part
+end
+
+-- Mencari semua pemain di dalam game
+for _, player in pairs(game.Players:GetPlayers()) do
+	if player.Character and player ~= game.Players.LocalPlayer then
+		createESP(player.Character)
+	end
+end
+
+-- Menambahkan ESP jika ada pemain baru yang muncul
+game.Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(char)
+		createESP(char)
+	end)
+end)
