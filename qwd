@@ -1,105 +1,47 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local UserInputService = game:GetService("UserInputService")
-local _G.ESP_STATUS = true
 
--- [[ UI TOMBOL ON/OFF DENGAN SISTEM DRAG MANUAL ]] --
-local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "ESP_Menu_Fixed"
-ScreenGui.ResetOnSpawn = false
-
-local Button = Instance.new("TextButton", ScreenGui)
-Button.Size = UDim2.new(0, 100, 0, 40)
-Button.Position = UDim2.new(0.5, -50, 0.1, 0) -- Muncul di tengah atas
-Button.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-Button.Text = "ESP: ON"
-Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-Button.Font = Enum.Font.SourceSansBold
-Button.TextSize = 18
-
--- Fitur Drag Manual (Supaya Pasti Bisa Digeser)
-local dragging, dragInput, dragStart, startPos
-Button.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = Button.Position
-    end
-end)
-Button.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        Button.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
-end)
-
--- Fungsi Toggle ESP
-Button.MouseButton1Click:Connect(function()
-    _G.ESP_STATUS = not _G.ESP_STATUS
-    Button.Text = _G.ESP_STATUS and "ESP: ON" or "ESP: OFF"
-    Button.BackgroundColor3 = _G.ESP_STATUS and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
-    
-    for _, p in pairs(Players:GetPlayers()) do
-        if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            local gui = p.Character.HumanoidRootPart:FindFirstChild("KotakESP")
-            if gui then gui.Enabled = _G.ESP_STATUS end
-        end
-    end
-end)
-
--- [[ LOGIKA ESP ASLI KAMU ]] --
 local function buatESP(player)
-    player.CharacterAdded:Connect(function(char)
+    local function applyESP(char)
         if player == LocalPlayer then return end
-        local root = char:WaitForChild("HumanoidRootPart", 10) 
+        
+        -- Menunggu HumanoidRootPart atau Head (Universal Check)
+        local root = char:WaitForChild("HumanoidRootPart", 10) or char:WaitForChild("Head", 10)
+        
         if root then
+            -- Hapus jika sudah ada agar tidak tumpuk
             if root:FindFirstChild("KotakESP") then root.KotakESP:Destroy() end
-            local gui = Instance.new("BillboardGui", root)
+
+            local gui = Instance.new("BillboardGui")
             gui.Name = "KotakESP"
             gui.AlwaysOnTop = true
             gui.Size = UDim2.new(4, 0, 5.5, 0)
-            gui.Enabled = _G.ESP_STATUS
-            local frame = Instance.new("Frame", gui)
+            gui.Adornee = root
+            gui.Parent = root
+
+            local frame = Instance.new("Frame")
             frame.Size = UDim2.new(1, 0, 1, 0)
             frame.BackgroundTransparency = 0.6
             frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-            local stroke = Instance.new("UIStroke", frame)
+            frame.BorderSizePixel = 0
+            frame.Parent = gui
+            
+            local stroke = Instance.new("UIStroke")
             stroke.Thickness = 2
             stroke.Color = Color3.fromRGB(255, 255, 255)
+            stroke.Parent = frame
         end
+    end
+
+    if player.Character then applyESP(player.Character) end
+    player.CharacterAdded:Connect(applyESP)
+end
+
+-- Menjalankan untuk semua pemain di server
+for _, p in pairs(Players:GetPlayers()) do
+    task.spawn(function()
+        buatESP(p)
     end)
 end
 
-for _, p in pairs(Players:GetPlayers()) do
-    if p.Character then
-        task.spawn(function()
-            local root = p.Character:WaitForChild("HumanoidRootPart", 5)
-            if root and p ~= LocalPlayer and not root:FindFirstChild("KotakESP") then
-                local gui = Instance.new("BillboardGui", root)
-                gui.Name = "KotakESP"
-                gui.AlwaysOnTop = true
-                gui.Size = UDim2.new(4, 0, 5.5, 0)
-                gui.Enabled = _G.ESP_STATUS
-                local frame = Instance.new("Frame", gui)
-                frame.Size = UDim2.new(1, 0, 1, 0)
-                frame.BackgroundTransparency = 0.6
-                frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-                local stroke = Instance.new("UIStroke", frame)
-                stroke.Thickness = 2
-                stroke.Color = Color3.fromRGB(255, 255, 255)
-            end
-        end)
-    end
-    buatESP(p)
-end
 Players.PlayerAdded:Connect(buatESP)
