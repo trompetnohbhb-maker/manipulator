@@ -4,16 +4,24 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- KONFIGURASI AIM
+-- KONFIGURASI
 local AimSettings = {
     Enabled = true,
-    AimPart = "HumanoidRootPart", -- Bisa ganti ke "HumanoidRootPart"
-    Smoothness = 0.1, -- Semakin kecil semakin cepat (0.1 - 0.5)
-    FOV = 900,
-    AimKey = Enum.UserInputType.MouseButton1 -- Aktif saat KLIK KIRI (Nembak)
+    AimPart = "Head",
+    FOV_Radius = 200, -- Ukuran lingkaran FOV
+    AimKey = Enum.UserInputType.MouseButton1 -- Klik Kiri
 }
 
--- [[ 1. ESP STABIL (LOGIKA ASLI KAMU) ]] --
+-- [[ 1. VISUALISASI FOV (LINGKARAN) ]] --
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 2
+FOVCircle.Color = Color3.fromRGB(255, 255, 255) -- Warna Putih
+FOVCircle.Transparency = 1
+FOVCircle.Filled = false
+FOVCircle.Visible = true
+FOVCircle.Radius = AimSettings.FOV_Radius
+
+-- [[ 2. ESP STABIL (LOGIKA ASLI KAMU) ]] --
 local function buatESP(player)
     player.CharacterAdded:Connect(function(char)
         if player == LocalPlayer then return end
@@ -35,10 +43,10 @@ local function buatESP(player)
     end)
 end
 
--- [[ 2. LOGIKA SMART AIMBOT ]] --
+-- [[ 3. LOGIKA INSTANT AIM ]] --
 local function getClosestPlayer()
     local target = nil
-    local shortestDistance = AimSettings.FOV
+    local shortestDistance = AimSettings.FOV_Radius
 
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(AimSettings.AimPart) then
@@ -60,17 +68,20 @@ local function getClosestPlayer()
 end
 
 RunService.RenderStepped:Connect(function()
+    -- Update posisi dan visibilitas lingkaran FOV
+    FOVCircle.Position = UserInputService:GetMouseLocation()
+    FOVCircle.Radius = AimSettings.FOV_Radius
+    
     if AimSettings.Enabled and UserInputService:IsMouseButtonPressed(AimSettings.AimKey) then
         local target = getClosestPlayer()
         if target then
-            -- Bypass "Satu Ketuk": Mengunci kamera dengan Lerp agar peluru sinkron
-            local lookAt = CFrame.new(Camera.CFrame.Position, target.Position)
-            Camera.CFrame = Camera.CFrame:Lerp(lookAt, AimSettings.Smoothness)
+            -- INSTANT LOCK (Tanpa Smooth)
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
         end
     end
 end)
 
--- Jalankan ESP untuk pemain lama dan baru
+-- Jalankan ESP
 for _, p in pairs(Players:GetPlayers()) do
     if p.Character then buatESP(p) end
     buatESP(p)
