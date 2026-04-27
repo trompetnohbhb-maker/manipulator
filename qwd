@@ -1,39 +1,28 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
 
-local kedalaman = 7 -- Seberapa dalam di bawah tanah
-local speed = 50 -- Kecepatan gerak
-
-local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local root = char:WaitForChild("HumanoidRootPart")
-
--- 1. Pindahkan posisi ke bawah lantai
-root.CFrame = root.CFrame * CFrame.new(0, -kedalaman, 0)
-
--- 2. Logika Gerak Bebas (Fly Bypass)
-RunService.Stepped:Connect(function(dt)
-    -- Matikan tabrakan agar bisa nembus apa aja
-    for _, v in pairs(char:GetDescendants()) do
-        if v:IsA("BasePart") then v.CanCollide = false end
+-- Fungsi Utama Bikin Hantu
+local function makeGhost()
+    local char = LocalPlayer.Character
+    if char then
+        for _, v in pairs(char:GetDescendants()) do
+            -- Bikin semua bagian tubuh, baju 3D, dan aksesoris jadi transparan
+            if v:IsA("BasePart") or v:IsA("Decal") or v:IsA("MeshPart") then
+                if v.Name ~= "HumanoidRootPart" then
+                    v.Transparency = 1
+                end
+            end
+            -- Hapus baju klasik biar bener-bener bersih
+            if v:IsA("Shirt") or v:IsA("Pants") or v:IsA("GraphicTShirt") then
+                v:Destroy()
+            end
+        end
     end
-    
-    -- Paksa posisi tetap di bawah (Biar gak mental ke atas)
-    local dir = Vector3.new(0,0,0)
-    if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + Camera.CFrame.LookVector end
-    if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - Camera.CFrame.LookVector end
-    if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - Camera.CFrame.RightVector end
-    if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + Camera.CFrame.RightVector end
-    
-    if dir.Magnitude > 0 then
-        -- Gerak horizontal saja agar kedalaman tetap stabil
-        root.CFrame = root.CFrame + (Vector3.new(dir.X, 0, dir.Z).Unit * speed * dt)
-    end
-    
-    -- Mengunci gravitasi agar tidak jatuh ke void
-    root.Velocity = Vector3.new(0, 0, 0)
-end)
+end
 
-print("Underground Fly Aktif! Gunakan WASD untuk gerak di bawah tanah.")
+-- Jalankan terus-menerus (Anti-Reset Visual)
+-- Biar kalo game maksa karakter muncul, script ini maksa ilangin lagi
+RunService.RenderStepped:Connect(makeGhost)
+
+print("Invis Berhasil! Kamu sekarang jadi hantu permanen.")
