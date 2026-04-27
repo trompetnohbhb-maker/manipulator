@@ -3,19 +3,22 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- Wadah UI
+-- Wadah UI agar tidak menumpuk
 local TracerGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-TracerGui.Name = "RonixUniversalESP"
+TracerGui.Name = "RonixSuperUniversalESP"
 TracerGui.ResetOnSpawn = false
 
 local function buatESP(player)
     if player == LocalPlayer then return end
 
     local function applyESP(char)
-        pcall(function()
-            local root = char:WaitForChild("HumanoidRootPart", 10)
+        -- Gunakan task.spawn agar jika satu pemain error, yang lain tidak terhenti
+        task.spawn(function()
+            -- Menunggu bagian tubuh muncul dengan retry (Anti-Error)
+            local root = char:WaitForChild("HumanoidRootPart", 20) or char:WaitForChild("Head", 20)
+            
             if root then
-                -- 1. KOTAK MERAH (Logika Stabil)
+                -- 1. KOTAK MERAH
                 if root:FindFirstChild("KotakESP") then root.KotakESP:Destroy() end
                 local gui = Instance.new("BillboardGui", root)
                 gui.Name = "KotakESP"
@@ -31,7 +34,7 @@ local function buatESP(player)
                 stroke.Thickness = 2
                 stroke.Color = Color3.fromRGB(255, 255, 255)
 
-                -- 2. GARIS PUTIH (Tracers)
+                -- 2. GARIS PUTIH (TRACERS)
                 local tracerLine = TracerGui:FindFirstChild(player.Name .. "_Tracer") or Instance.new("Frame", TracerGui)
                 tracerLine.Name = player.Name .. "_Tracer"
                 tracerLine.BorderSizePixel = 0
@@ -67,11 +70,22 @@ local function buatESP(player)
     player.CharacterAdded:Connect(applyESP)
 end
 
--- Scan semua pemain tanpa kecuali
-for _, p in pairs(Players:GetPlayers()) do
-    task.spawn(function()
-        buatESP(p)
-    end)
-end
+-- SCAN ULANG SETIAP BEBERAPA DETIK (Untuk memastikan semua kena)
+task.spawn(function()
+    while task.wait(5) do
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then
+                local root = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Head")
+                if root and not root:FindFirstChild("KotakESP") then
+                    buatESP(p)
+                end
+            end
+        end
+    end
+end)
 
+-- Jalankan awal untuk semua pemain
+for _, p in pairs(Players:GetPlayers()) do
+    buatESP(p)
+end
 Players.PlayerAdded:Connect(buatESP)
