@@ -5,7 +5,7 @@ local character = player.Character or player.CharacterAdded:Wait()
 for _, v in pairs(character:GetDescendants()) do
     if v:IsA("BasePart") or v:IsA("Decal") then
         if v.Name ~= "HumanoidRootPart" then
-            v.Transparency = 1
+            v.Transparency = 0.1
         end
     end
 end
