@@ -3,62 +3,68 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- KONFIGURASI
-local FOV_JARAK = 100 -- Seberapa dekat musuh harus ada di layar biar kekunci
+-- Membuat Folder untuk Tracers agar rapi
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+ScreenGui.Name = "RonixESP_Tracers"
 
--- [[ 1. ESP STABIL (LOGIKA ASLI KAMU - PASTI WORK) ]] --
 local function buatESP(player)
     player.CharacterAdded:Connect(function(char)
         if player == LocalPlayer then return end
-        local root = char:WaitForChild("HumanoidRootPart", 10) 
+        
+        -- Bypass Asset Not Found
+        local root = char:WaitForChild("HumanoidRootPart", 15) 
         if root then
+            -- 1. KOTAK MERAH (Paling Stabil)
             if root:FindFirstChild("KotakESP") then root.KotakESP:Destroy() end
             local gui = Instance.new("BillboardGui", root)
             gui.Name = "KotakESP"
             gui.AlwaysOnTop = true
             gui.Size = UDim2.new(4, 0, 5.5, 0)
+            
             local frame = Instance.new("Frame", gui)
             frame.Size = UDim2.new(1, 0, 1, 0)
             frame.BackgroundTransparency = 0.6
             frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+            
             local stroke = Instance.new("UIStroke", frame)
             stroke.Thickness = 2
             stroke.Color = Color3.fromRGB(255, 255, 255)
+
+            -- 2. GARIS (Tracers)
+            local tracerLine = Instance.new("Frame", ScreenGui)
+            tracerLine.BorderSizePixel = 0
+            tracerLine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            tracerLine.AnchorPoint = Vector2.new(0.5, 0.5)
+
+            -- Update Garis setiap Frame (Ronix Windows Support)
+            local connection
+            connection = RunService.RenderStepped:Connect(function()
+                if char.Parent and root and player.Parent then
+                    local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+                    if onScreen then
+                        local startPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                        local endPos = Vector2.new(pos.X, pos.Y)
+                        local distance = (startPos - endPos).Magnitude
+                        
+                        tracerLine.Visible = true
+                        tracerLine.Size = UDim2.new(0, 1.5, 0, distance)
+                        tracerLine.Position = UDim2.new(0, (startPos.X + endPos.X) / 2, 0, (startPos.Y + endPos.Y) / 2)
+                        tracerLine.Rotation = math.deg(math.atan2(endPos.Y - startPos.Y, endPos.X - startPos.X)) - 90
+                    else
+                        tracerLine.Visible = false
+                    end
+                else
+                    tracerLine:Destroy()
+                    connection:Disconnect()
+                end
+            end)
         end
     end)
 end
 
--- [[ 2. LOGIKA AUTO-LOCK (STABIL & INSTAN) ]] --
-RunService.RenderStepped:Connect(function()
-    local target = nil
-    local shortestDistance = FOV_JARAK
-    local mousePos = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2) -- Tengah layar
-
-    -- Mencari musuh terdekat dari tengah layar
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-            local head = player.Character.Head
-            local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
-            
-            if onScreen then
-                local distance = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
-                if distance < shortestDistance then
-                    target = head
-                    shortestDistance = distance
-                end
-            end
-        end
-    end
-
-    -- PAKSA NEMPEL (Tanpa syarat klik)
-    if target then
-        Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
-    end
-end)
-
--- Jalankan ESP awal
+-- Menjalankan untuk semua pemain
 for _, p in pairs(Players:GetPlayers()) do
-    if p.Character then buatESP(p) end
+    if p.Character then task.spawn(function() buatESP(p) end) end
     buatESP(p)
 end
 Players.PlayerAdded:Connect(buatESP)
