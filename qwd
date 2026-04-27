@@ -2,7 +2,6 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local VirtualUser = game:GetService("VirtualUser")
 local RunService = game:GetService("RunService")
 
 -- [[ 1. RESET & CLEANUP ]] --
@@ -12,11 +11,11 @@ _G.FlyAbove = false
 _G.AutoQuest = false
 
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-if PlayerGui:FindFirstChild("YutaHub_Final") then PlayerGui.YutaHub_Final:Destroy() end
+if PlayerGui:FindFirstChild("YutaHub_V1") then PlayerGui.YutaHub_V1:Destroy() end
 
--- [[ 2. SETUP UI ]] --
+-- [[ 2. SETUP UI YUTA HUB 1 ]] --
 local ScreenGui = Instance.new("ScreenGui", PlayerGui)
-ScreenGui.Name = "YutaHub_Final"
+ScreenGui.Name = "YutaHub_V1"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
@@ -27,14 +26,14 @@ Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
 local Header = Instance.new("TextLabel", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 40)
-Header.Text = "YUTA HUB V7"
+Header.Text = "YUTA HUB 1" -- NAMA DIUBAH
 Header.TextColor3 = Color3.fromRGB(255, 255, 255)
 Header.BackgroundColor3 = Color3.fromRGB(130, 0, 0)
 Header.Font = Enum.Font.SourceSansBold
 Header.TextSize = 16
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 10)
 
--- Sistem Drag
+-- Drag System
 local dragging, dragStart, startPos
 Header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -69,73 +68,74 @@ local function CreateButton(name, order, callback)
     end)
 end
 
--- [[ 3. CORE LOGIC ]] --
-
-local function GetEnemy()
-    local target = nil
-    local dist = 500
-    local folder = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
-    if folder then
-        for _, v in pairs(folder:GetChildren()) do
-            if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
-                local mag = (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                if mag < dist then dist = mag; target = v end
+-- [[ 3. OTENTIK FAST ATTACK LOGIC (YT METHOD) ]] --
+local function FastAttack()
+    pcall(function()
+        local Combat = ReplicatedStorage.Modules.Net:FindFirstChild("RE/Attack") or ReplicatedStorage.Modules.Net:FindFirstChild("Attack")
+        local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        if Tool and Combat then
+            -- Memicu serangan tanpa delay animasi
+            Combat:FireServer(0.1) 
+            -- Memicu efek visual agar hit teregistrasi
+            if Tool:FindFirstChild("Attack") then
+                Tool.Attack:Fire()
             end
         end
-    end
-    return target
+    end)
 end
 
--- A. AUTO ATTACK (PURE CLICKER METHOD)
+-- [[ 4. CORE FEATURES ]] --
+
+-- A. AUTO ATTACK (YouTube Meta Method)
 CreateButton("Auto Attack", 1, function(state)
     _G.AutoAttack = state
     task.spawn(function()
         while _G.AutoAttack do
-            RunService.RenderStepped:Wait(0.1) -- Loop secepat mungkin (60 fps+)
-            pcall(function()
-                if LocalPlayer.Character:FindFirstChildOfClass("Tool") then
-                    VirtualUser:CaptureController()
-                    VirtualUser:ClickButton1(Vector2.new(0,1)) -- Simulasi Klik Kiri Mouse
-                end
-            end)
+            RunService.RenderStepped:Wait() -- Loop secepat FPS
+            if _G.AutoAttack then
+                FastAttack()
+            end
         end
     end)
 end)
 
--- B. ATTACK RANGE (Sized Tool)
+-- B. ATTACK RANGE (Hitbox Expander)
 CreateButton("Attack Range", 2, function(state)
     _G.AttackRange = state
     task.spawn(function()
         while _G.AttackRange do
-            task.wait(1)
+            task.wait(0.5)
             pcall(function()
                 local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                if tool then
-                    for _, p in pairs(tool:GetDescendants()) do
-                        if p:IsA("BasePart") then
-                            p.Size = Vector3.new(65, 65, 65) -- Jangkauan sangat luas
-                            p.Transparency = 0.8
-                            p.CanCollide = false
-                        end
-                    end
+                if tool and tool:FindFirstChild("Handle") then
+                    tool.Handle.Size = Vector3.new(100, 100, 100)
+                    tool.Handle.Transparency = 0.8
+                    tool.Handle.CanCollide = false
                 end
             end)
         end
     end)
 end)
 
--- C. FLY ABOVE NPC (TINGGI 15 UNIT)
+-- C. FLY ABOVE NPC (Tinggi 15 Unit)
 CreateButton("Fly Above NPC", 3, function(state)
     _G.FlyAbove = state
     task.spawn(function()
         while _G.FlyAbove do
             RunService.Heartbeat:Wait()
             pcall(function()
-                local target = GetEnemy()
-                local root = LocalPlayer.Character.HumanoidRootPart
-                if target and root then
-                    -- Mengunci posisi di 15 unit di atas musuh
-                    root.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0)
+                local target = nil
+                local dist = 500
+                local enemies = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
+                for _, v in pairs(enemies:GetChildren()) do
+                    if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                        local mag = (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                        if mag < dist then dist = mag; target = v end
+                    end
+                end
+                
+                if target then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0)
                 end
             end)
         end
