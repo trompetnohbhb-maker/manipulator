@@ -1,44 +1,118 @@
+-- [[ UNIVERSAL UI SCRIPT ]] --
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
-local espEnabled = true -- Ubah jadi false kalau mau dimatikan
+-- PENGATURAN DEFAULT
+local Settings = {
+    AimbotOn = false,
+    EspOn = false,
+    Smoothness = 0.15,
+    FOV = 250
+}
 
-local function buatESP(player)
-    player.CharacterAdded:Connect(function(char)
-        local root = char:WaitForChild("HumanoidRootPart")
-        
-        -- 1. Membuat Box (Kotak di badan pemain)
-        local highlight = Instance.new("Highlight")
-        highlight.Name = "PlayerESP"
-        highlight.Parent = char
-        highlight.FillTransparency = 0.6 -- Transparansi kotak
-        highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Merah untuk musuh
-        highlight.OutlineColor = Color3.fromRGB(255, 255, 255) -- Putih untuk garis tepi
-        
-        -- 2. Membuat Nama & Jarak (BillboardGui)
-        local gui = Instance.new("BillboardGui")
-        gui.Name = "TagESP"
-        gui.Size = UDim2.new(0, 100, 0, 50)
-        gui.AlwaysOnTop = true
-        gui.StudsOffset = Vector3.new(0, 3, 0)
-        gui.Parent = root
+-- 1. MEMBUAT UI SEDERHANA
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "CheatMenu"
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
 
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, 0, 1, 0)
-        label.BackgroundTransparency = 1
-        label.Text = player.Name
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
-        label.TextStrokeTransparency = 0
-        label.Parent = gui
-    end)
-end
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 150, 0, 100)
+Frame.Position = UDim2.new(0.05, 0, 0.4, 0) -- Di sebelah kiri layar
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.BorderSizePixel = 2
+Frame.Active = true
+Frame.Draggable = true -- Bisa digeser pakai mouse
+Frame.Parent = ScreenGui
 
--- Jalankan fungsi untuk semua pemain yang masuk
-for _, p in pairs(Players:GetPlayers()) do
-    if p ~= LocalPlayer then
-        buatESP(p)
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0.3, 0)
+Title.Text = "MENU"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundTransparency = 1
+Title.Parent = Frame
+
+-- Tombol Aimbot
+local AimBtn = Instance.new("TextButton")
+AimBtn.Size = UDim2.new(0.9, 0, 0.3, 0)
+AimBtn.Position = UDim2.new(0.05, 0, 0.35, 0)
+AimBtn.Text = "AIM: OFF"
+AimBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+AimBtn.Parent = Frame
+
+-- Tombol ESP
+local EspBtn = Instance.new("TextButton")
+EspBtn.Size = UDim2.new(0.9, 0, 0.3, 0)
+EspBtn.Position = UDim2.new(0.05, 0, 0.7, 0)
+EspBtn.Text = "ESP: OFF"
+EspBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+EspBtn.Parent = Frame
+
+-- 2. LOGIKA TOMBOL
+AimBtn.MouseButton1Click:Connect(function()
+    Settings.AimbotOn = not Settings.AimbotOn
+    AimBtn.Text = Settings.AimbotOn and "AIM: ON" or "AIM: OFF"
+    AimBtn.BackgroundColor3 = Settings.AimbotOn and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+end)
+
+EspBtn.MouseButton1Click:Connect(function()
+    Settings.EspOn = not Settings.EspOn
+    EspBtn.Text = Settings.EspOn and "ESP: ON" or "ESP: OFF"
+    EspBtn.BackgroundColor3 = Settings.EspOn and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+    
+    -- Bersihkan ESP jika dimatikan
+    if not Settings.EspOn then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character and p.Character:FindFirstChild("UniversalHighlight") then
+                p.Character.UniversalHighlight:Destroy()
+            end
+        end
     end
+end)
+
+-- 3. LOGIKA CORE (AIM & ESP)
+local function GetTarget()
+    local target = nil
+    local dist = Settings.FOV
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") then
+            local pos, onScreen = Camera:WorldToViewportPoint(v.Character.Head.Position)
+            if onScreen then
+                local mousePos = UserInputService:GetMouseLocation()
+                local mag = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                if mag < dist then
+                    target = v.Character.Head
+                    dist = mag
+                end
+            end
+        end
+    end
+    return target
 end
+
+RunService.RenderStepped:Connect(function()
+    -- ESP Loop
+    if Settings.EspOn then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and not p.Character:FindFirstChild("UniversalHighlight") then
+                local h = Instance.new("Highlight")
+                h.Name = "UniversalHighlight"
+                h.FillColor = Color3.fromRGB(255, 0, 0)
+                h.Parent = p.Character
+            end
+        end
+    end
+
+    -- Aim Loop (Hanya jika tombol Aim ON dan klik kanan ditahan)
+    if Settings.AimbotOn and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+        local target = GetTarget()
+        if target then
+            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, target.Position), Settings.Smoothness)
+        end
+    end
+end)
 
 Players.PlayerAdded:Connect(buatESP)
