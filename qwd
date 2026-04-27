@@ -7,9 +7,9 @@ local Camera = workspace.CurrentCamera
 -- KONFIGURASI AIM
 local AimSettings = {
     Enabled = true,
-    AimPart = "Head", -- Bisa ganti ke "HumanoidRootPart"
-    Smoothness = 0.15, -- Semakin kecil semakin cepat (0.1 - 0.5)
-    FOV = 300,
+    AimPart = "HumanoidRootPart", -- Bisa ganti ke "HumanoidRootPart"
+    Smoothness = 0.1, -- Semakin kecil semakin cepat (0.1 - 0.5)
+    FOV = 900,
     AimKey = Enum.UserInputType.MouseButton1 -- Aktif saat KLIK KIRI (Nembak)
 }
 
