@@ -1,118 +1,113 @@
--- [[ UNIVERSAL UI SCRIPT ]] --
+-- [[ UNIVERSAL TABBED MENU ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- PENGATURAN DEFAULT
-local Settings = {
-    AimbotOn = false,
-    EspOn = false,
-    Smoothness = 0.15,
-    FOV = 250
-}
+local Settings = {Aim = false, Esp = false, Fly = false, FlySpeed = 50, Smooth = 0.15, FOV = 200}
 
--- 1. MEMBUAT UI SEDERHANA
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "CheatMenu"
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+-- [[ UI CONSTRUCTION ]] --
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+ScreenGui.Name = "TabMenu"
 ScreenGui.ResetOnSpawn = false
 
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 150, 0, 100)
-Frame.Position = UDim2.new(0.05, 0, 0.4, 0) -- Di sebelah kiri layar
-Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Frame.BorderSizePixel = 2
-Frame.Active = true
-Frame.Draggable = true -- Bisa digeser pakai mouse
-Frame.Parent = ScreenGui
+-- Header (Satu baris utama)
+local Header = Instance.new("Frame", ScreenGui)
+Header.Size = UDim2.new(0, 160, 0, 30)
+Header.Position = UDim2.new(0.1, 0, 0.1, 0)
+Header.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Header.Active = true
+Header.Draggable = true
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0.3, 0)
-Title.Text = "MENU"
+local Title = Instance.new("TextButton", Header)
+Title.Size = UDim2.new(1, 0, 1, 0)
+Title.Text = "CHEAT MENU (Click)"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.BackgroundTransparency = 1
-Title.Parent = Frame
 
--- Tombol Aimbot
-local AimBtn = Instance.new("TextButton")
-AimBtn.Size = UDim2.new(0.9, 0, 0.3, 0)
-AimBtn.Position = UDim2.new(0.05, 0, 0.35, 0)
-AimBtn.Text = "AIM: OFF"
-AimBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-AimBtn.Parent = Frame
+-- Container Menu (Isi yang bisa muncul/hilang)
+local Content = Instance.new("Frame", Header)
+Content.Size = UDim2.new(1, 0, 0, 140)
+Content.Position = UDim2.new(0, 0, 1, 0)
+Content.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Content.Visible = false -- Awalnya tertutup
 
--- Tombol ESP
-local EspBtn = Instance.new("TextButton")
-EspBtn.Size = UDim2.new(0.9, 0, 0.3, 0)
-EspBtn.Position = UDim2.new(0.05, 0, 0.7, 0)
-EspBtn.Text = "ESP: OFF"
-EspBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-EspBtn.Parent = Frame
+local UIList = Instance.new("UIListLayout", Content)
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+UIList.Padding = UDim.new(0, 5)
 
--- 2. LOGIKA TOMBOL
-AimBtn.MouseButton1Click:Connect(function()
-    Settings.AimbotOn = not Settings.AimbotOn
-    AimBtn.Text = Settings.AimbotOn and "AIM: ON" or "AIM: OFF"
-    AimBtn.BackgroundColor3 = Settings.AimbotOn and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
-end)
-
-EspBtn.MouseButton1Click:Connect(function()
-    Settings.EspOn = not Settings.EspOn
-    EspBtn.Text = Settings.EspOn and "ESP: ON" or "ESP: OFF"
-    EspBtn.BackgroundColor3 = Settings.EspOn and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+-- Fungsi Buat Tombol
+local function CreateToggle(name, settingKey)
+    local btn = Instance.new("TextButton", Content)
+    btn.Size = UDim2.new(1, -10, 0, 30)
+    btn.Text = name .. ": OFF"
+    btn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     
-    -- Bersihkan ESP jika dimatikan
-    if not Settings.EspOn then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p.Character and p.Character:FindFirstChild("UniversalHighlight") then
-                p.Character.UniversalHighlight:Destroy()
-            end
-        end
-    end
+    btn.MouseButton1Click:Connect(function()
+        Settings[settingKey] = not Settings[settingKey]
+        btn.Text = name .. (Settings[settingKey] and ": ON" or ": OFF")
+        btn.BackgroundColor3 = Settings[settingKey] and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+        if settingKey == "Fly" then ToggleFly(Settings.Fly) end
+    end)
+end
+
+-- Tambah fitur ke menu
+CreateToggle("Auto Aim", "Aim")
+CreateToggle("ESP Player", "Esp")
+CreateToggle("Fly Hack", "Fly")
+
+-- Klik Header untuk buka/tutup menu
+Title.MouseButton1Click:Connect(function()
+    Content.Visible = not Content.Visible
 end)
 
--- 3. LOGIKA CORE (AIM & ESP)
-local function GetTarget()
-    local target = nil
-    local dist = Settings.FOV
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") then
-            local pos, onScreen = Camera:WorldToViewportPoint(v.Character.Head.Position)
-            if onScreen then
-                local mousePos = UserInputService:GetMouseLocation()
-                local mag = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
-                if mag < dist then
-                    target = v.Character.Head
-                    dist = mag
-                end
-            end
-        end
+-- [[ CORE LOGIC (Fly, Aim, ESP) ]] --
+local bv, bg
+function ToggleFly(state)
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    if state then
+        bg = Instance.new("BodyGyro", root); bg.MaxTorque = Vector3.new(45e5, 45e5, 45e5); bg.P = 9e3
+        bv = Instance.new("BodyVelocity", root); bv.MaxForce = Vector3.new(45e5, 45e5, 45e5)
+        LocalPlayer.Character.Humanoid.PlatformStand = true
+    else
+        if bv then bv:Destroy() end; if bg then bg:Destroy() end
+        LocalPlayer.Character.Humanoid.PlatformStand = false
     end
-    return target
 end
 
 RunService.RenderStepped:Connect(function()
-    -- ESP Loop
-    if Settings.EspOn then
+    -- ESP
+    if Settings.Esp then
         for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character and not p.Character:FindFirstChild("UniversalHighlight") then
-                local h = Instance.new("Highlight")
-                h.Name = "UniversalHighlight"
-                h.FillColor = Color3.fromRGB(255, 0, 0)
-                h.Parent = p.Character
+            if p ~= LocalPlayer and p.Character and not p.Character:FindFirstChild("ESPH") then
+                local h = Instance.new("Highlight", p.Character); h.Name = "ESPH"; h.FillColor = Color3.fromRGB(255, 0, 0)
             end
         end
     end
-
-    -- Aim Loop (Hanya jika tombol Aim ON dan klik kanan ditahan)
-    if Settings.AimbotOn and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-        local target = GetTarget()
-        if target then
-            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, target.Position), Settings.Smoothness)
+    -- Fly
+    if Settings.Fly and bv and bg then
+        bg.CFrame = Camera.CFrame
+        local dir = Vector3.new(0,0,0)
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - Camera.CFrame.LookVector end
+        bv.Velocity = dir * Settings.FlySpeed
+    end
+    -- Aim (Right Click)
+    if Settings.Aim and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+        local target = nil; local dist = Settings.FOV
+        for _, v in pairs(Players:GetPlayers()) do
+            if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") then
+                local pos, onScreen = Camera:WorldToViewportPoint(v.Character.Head.Position)
+                if onScreen then
+                    local mag = (Vector2.new(pos.X, pos.Y) - UserInputService:GetMouseLocation()).Magnitude
+                    if mag < dist then target = v.Character.Head; dist = mag end
+                end
+            end
         end
+        if target then Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, target.Position), Settings.Smooth) end
     end
 end)
 
-Players.PlayerAdded:Connect(buatESP)
