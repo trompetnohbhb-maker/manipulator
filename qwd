@@ -7,7 +7,6 @@ local Camera = workspace.CurrentCamera
 -- KONFIGURASI
 local FOV_RADIUS = 200 
 local AIM_PART = "Head"
-local AIM_SMOOTHNESS = 1 -- Langsung nempel (Instan)
 
 -- [[ 1. BUAT LINGKARAN FOV PAKAI GUI (PASTI MUNCUL) ]] --
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
@@ -50,7 +49,7 @@ local function buatESP(player)
     end)
 end
 
--- [[ 3. LOGIKA AUTO-LOCK AIM ]] --
+-- [[ 3. LOGIKA AUTO-LOCK (TANPA SYARAT KLIK) ]] --
 local function getClosestPlayer()
     local target = nil
     local shortestDistance = FOV_RADIUS
@@ -73,15 +72,16 @@ local function getClosestPlayer()
     return target
 end
 
+-- Update Loop: Dipaksa nempel setiap saat
 RunService.RenderStepped:Connect(function()
-    -- Update posisi lingkaran ke kursor
+    -- Posisi FOV ngikutin mouse
     local mousePos = UserInputService:GetMouseLocation()
     FOVFrame.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
 
-    -- AUTO-LOCK LOGIC (Selalu ngikutin musuh di FOV)
+    -- CARI TARGET DAN PAKSA NEMPEL
     local target = getClosestPlayer()
     if target then
-        -- Kamera dipaksa melihat ke target secara instan
+        -- Baris ini yang bikin kamera nempel otomatis
         Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
     end
 end)
