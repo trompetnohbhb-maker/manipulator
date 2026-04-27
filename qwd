@@ -1,48 +1,23 @@
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
 
--- [[ 1. BUAT UI TOMBOL SEDERHANA ]] --
-local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "InvisSimple"
-ScreenGui.ResetOnSpawn = false
-
-local Button = Instance.new("TextButton", ScreenGui)
-Button.Size = UDim2.new(0, 100, 0, 40)
-Button.Position = UDim2.new(0, 10, 0.5, 0) -- Di tengah kiri layar
-Button.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-Button.Text = "INVIS: OFF"
-Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-Button.BorderSizePixel = 2
-
-local invisAktif = false
-
--- [[ 2. LOGIKA INVISIBLE ]] --
-local function buatInvis(state)
-    local char = LocalPlayer.Character
-    if not char then return end
-    
-    local nilaiTransparansi = state and 1 or 0
-    
-    for _, v in pairs(char:GetDescendants()) do
-        if v:IsA("BasePart") or v:IsA("Decal") then
-            -- HumanoidRootPart harus tetap ada supaya tidak mati
-            if v.Name ~= "HumanoidRootPart" then
-                v.Transparency = nilaiTransparansi
-            end
+-- Langsung menghilang saat script dijalankan
+for _, v in pairs(character:GetDescendants()) do
+    if v:IsA("BasePart") or v:IsA("Decal") then
+        if v.Name ~= "HumanoidRootPart" then
+            v.Transparency = 1
         end
     end
 end
 
--- Klik Tombol
-Button.MouseButton1Click:Connect(function()
-    invisAktif = not invisAktif
-    Button.Text = invisAktif and "INVIS: ON" or "INVIS: OFF"
-    Button.BackgroundColor3 = invisAktif and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
-    buatInvis(invisAktif)
-end)
+-- Menghilangkan aksesoris (topi, rambut, dll)
+for _, v in pairs(character:GetChildren()) do
+    if v:IsA("Accessory") then
+        local handle = v:FindFirstChild("Handle")
+        if handle then
+            handle.Transparency = 1
+        end
+    end
+end
 
--- Biar tetep invis pas respawn
-LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(1)
-    if invisAktif then buatInvis(true) end
-end)
+print("Invis aktif! Player lain tidak bisa melihat badanmu.")
