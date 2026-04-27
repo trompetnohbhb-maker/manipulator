@@ -1,20 +1,53 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local _G.ESP_STATUS = true
 
+-- [[ UI TOMBOL ON/OFF BISA DIGERAKKAN ]] --
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+ScreenGui.Name = "ESP_Menu"
+ScreenGui.ResetOnSpawn = false
+
+local Button = Instance.new("TextButton", ScreenGui)
+Button.Size = UDim2.new(0, 100, 0, 40)
+Button.Position = UDim2.new(0.1, 0, 0.1, 0)
+Button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+Button.Text = "ESP: ON"
+Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+Button.Active = true
+Button.Draggable = true -- Membuat tombol bisa digeser
+
+local function toggleESP()
+    _G.ESP_STATUS = not _G.ESP_STATUS
+    Button.Text = _G.ESP_STATUS and "ESP: ON" or "ESP: OFF"
+    Button.BackgroundColor3 = _G.ESP_STATUS and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+    
+    for _, p in pairs(Players:GetPlayers()) do
+        if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local root = p.Character.HumanoidRootPart
+            local gui = root:FindFirstChild("KotakESP")
+            if gui then
+                gui.Enabled = _G.ESP_STATUS
+            end
+        end
+    end
+end
+
+Button.MouseButton1Click:Connect(toggleESP)
+
+-- [[ LOGIKA ESP ASLI KAMU ]] --
 local function buatESP(player)
     player.CharacterAdded:Connect(function(char)
         if player == LocalPlayer then return end
-        
         local root = char:WaitForChild("HumanoidRootPart", 10) 
-        
         if root then
-            if root:FindFirstChild("KotakESP") then return end
+            if root:FindFirstChild("KotakESP") then root.KotakESP:Destroy() end
 
             local gui = Instance.new("BillboardGui")
             gui.Name = "KotakESP"
             gui.AlwaysOnTop = true
             gui.Size = UDim2.new(4, 0, 5.5, 0)
             gui.Adornee = root
+            gui.Enabled = _G.ESP_STATUS
             gui.Parent = root
 
             local frame = Instance.new("Frame")
@@ -43,6 +76,7 @@ for _, p in pairs(Players:GetPlayers()) do
                 gui.AlwaysOnTop = true
                 gui.Size = UDim2.new(4, 0, 5.5, 0)
                 gui.Adornee = root
+                gui.Enabled = _G.ESP_STATUS
                 gui.Parent = root
                 
                 local frame = Instance.new("Frame")
