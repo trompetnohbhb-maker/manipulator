@@ -1,39 +1,38 @@
-local player = game.Players.LocalPlayer
-local runService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
-local function hideEverything()
-    local char = player.Character
-    if char then
-        for _, v in pairs(char:GetDescendants()) do
-            -- Menghilangkan SelectionBox (Garis kotak Ken Haki)
-            if v:IsA("SelectionBox") or v:IsA("BoxHandleAdornment") then
-                v.Visible = false
-            end
+_G.KillAura = true -- Set ke false untuk mematikan
+_G.AttackRange = 50 -- Jarak jangkauan pukul
+
+task.spawn(function()
+    while _G.KillAura do
+        task.wait(0.1) -- Jeda agar tidak mudah kena kick
+        pcall(function()
+            local char = LocalPlayer.Character
+            local tool = char and char:FindFirstChildOfClass("Tool")
             
-            -- Menghilangkan Efek Aura Cahaya
-            if v:IsA("PointLight") or v:IsA("SurfaceLight") or v:IsA("SpotLight") then
-                v.Enabled = false
-            end
-
-            -- Menghilangkan Partikel & Trail
-            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then
-                v.Enabled = false
-            end
-
-            -- Tetap menjaga badan transparan (0.99 agar tidak speed glitch)
-            if v:IsA("BasePart") or v:IsA("MeshPart") then
-                if v.Name ~= "HumanoidRootPart" then
-                    v.Transparency = 0.99
+            if tool then
+                -- Mencari NPC terdekat
+                for _, v in pairs(workspace.Enemies:GetChildren()) do
+                    local humanoid = v:FindFirstChild("Humanoid")
+                    local root = v:FindFirstChild("HumanoidRootPart")
+                    
+                    if humanoid and root and humanoid.Health > 0 then
+                        local dist = (root.Position - char.HumanoidRootPart.Position).Magnitude
+                        if dist < _G.AttackRange then
+                            -- Menyerang otomatis (Kill Aura)
+                            tool:Activate()
+                            -- Logic Fast Attack (Hapus animasi cooldown)
+                            for _, anim in pairs(char.Humanoid:GetPlayingAnimationTracks()) do
+                                anim:Stop()
+                            end
+                        end
+                    end
                 end
             end
-
-            -- Hapus Aksesoris yang sering muncul lagi saat ganti mode
-            if v:IsA("Accessory") then
-                v:Destroy()
-            end
-        end
+        end)
     end
-end
+end)
 
-runService.RenderStepped:Connect(hideEverything)
-print("Invis Ken Haki Aktif! Aura dan kotak deteksi sekarang hilang.")
+print("Kill Aura & Fast Attack Aktif!")
