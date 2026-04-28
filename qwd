@@ -177,19 +177,50 @@ CreateButton("Fly Above NPC", 2, function(state)
     end
 end)
 
--- AUTO QUEST (Smart)
-CreateButton("Auto Quest", 3, function(state)
+-- [[ 1. DATABASE QUEST SEA 1 LENGKAP ]] --
+local function GetQuestData()
+    local lv = LocalPlayer.Data.Level.Value
+    if lv >= 1 and lv < 10 then return "BanditQuest1", 1
+    elseif lv >= 10 and lv < 15 then return "MonkeyQuest1", 1
+    elseif lv >= 15 and lv < 30 then return "MonkeyQuest1", 2
+    elseif lv >= 30 and lv < 40 then return "PirateIslandQuest", 1
+    elseif lv >= 40 and lv < 60 then return "PirateIslandQuest", 2
+    elseif lv >= 60 and lv < 75 then return "DesertIslandQuest", 1
+    elseif lv >= 75 and lv < 90 then return "DesertIslandQuest", 2
+    elseif lv >= 90 and lv < 120 then return "SnowIslandQuest", 1
+    elseif lv >= 120 and lv < 150 then return "SnowIslandQuest", 2
+    elseif lv >= 150 and lv < 175 then return "MarineTreeQuest", 1
+    elseif lv >= 175 and lv < 190 then return "MarineTreeQuest", 2
+    elseif lv >= 190 and lv < 210 then return "SkyQuest", 1
+    elseif lv >= 210 and lv < 250 then return "SkyQuest", 2
+    elseif lv >= 250 and lv < 275 then return "PrisonQuest", 1
+    elseif lv >= 275 and lv < 300 then return "PrisonQuest", 2
+    elseif lv >= 300 and lv < 330 then return "MagmaQuest", 1
+    elseif lv >= 330 and lv < 425 then return "MagmaQuest", 2
+    elseif lv >= 425 and lv < 450 then return "FishmanQuest", 1
+    elseif lv >= 450 and lv < 575 then return "FishmanQuest", 2
+    elseif lv >= 575 and lv < 625 then return "SkyExp1Quest", 1
+    elseif lv >= 625 and lv < 700 then return "SkyExp1Quest", 2
+    else return "BanditQuest1", 1 end
+end
+
+-- [[ 2. TOMBOL AUTO QUEST ]] --
+CreateButton("Auto Quest", 4, function(state)
     _G.Quest = state
-    while _G.Quest do
-        task.wait(1.5)
-        pcall(function()
-            local comm = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
-            if comm and not LocalPlayer.PlayerGui.Main.Quest.Visible then
-                local qName, qId = GetQuestData()
-                comm:InvokeServer("StartQuest", qName, qId)
-            end
-        end)
-    end
+    task.spawn(function()
+        while _G.Quest do
+            task.wait(1) -- Cek tiap 1 detik biar gak lag
+            pcall(function()
+                -- Pengecekan apakah kamu sedang TIDAK punya Quest
+                local mainGui = LocalPlayer.PlayerGui:FindFirstChild("Main")
+                if mainGui and (not mainGui.Quest.Visible) then
+                    local qName, qId = GetQuestData()
+                    -- Remote Utama Blox Fruits untuk Quest
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", qName, qId)
+                end
+            end)
+        end
+    end)
 end)
 
 -- ANTI-AFK (Biar gak kena kick)
