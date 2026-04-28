@@ -5,7 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
--- [[ 1. KONEKSI REMOTE (ANTI-ERROR) ]] --
+-- [[ 1. KONEKSI REMOTE UTAMA ]] --
 local Net = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Net")
 local RegisterAttack = Net:WaitForChild("RE/RegisterAttack")
 local RegisterHit = Net:WaitForChild("RE/RegisterHit")
@@ -16,11 +16,37 @@ _G.AA = false
 _G.Fly = false
 _G.Quest = false
 
--- Hapus UI lama agar tidak numpuk
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 if PlayerGui:FindFirstChild("YutaHub_Floating") then PlayerGui.YutaHub_Floating:Destroy() end
 
--- [[ 3. SETUP UI FLOATING ]] --
+-- [[ 3. DATA QUEST OTOMATIS (SEA 1) ]] --
+local function GetQuestData()
+    local lv = LocalPlayer.Data.Level.Value
+    if lv >= 1 and lv < 10 then return "BanditQuest1", 1
+    elseif lv >= 10 and lv < 15 then return "MonkeyQuest1", 1
+    elseif lv >= 15 and lv < 30 then return "MonkeyQuest1", 2
+    elseif lv >= 30 and lv < 40 then return "PirateIslandQuest", 1
+    elseif lv >= 40 and lv < 60 then return "PirateIslandQuest", 2
+    elseif lv >= 60 and lv < 75 then return "DesertIslandQuest", 1
+    elseif lv >= 75 and lv < 90 then return "DesertIslandQuest", 2
+    elseif lv >= 90 and lv < 120 then return "SnowIslandQuest", 1
+    elseif lv >= 120 and lv < 150 then return "SnowIslandQuest", 2
+    elseif lv >= 150 and lv < 175 then return "MarineTreeQuest", 1
+    elseif lv >= 175 and lv < 190 then return "MarineTreeQuest", 2
+    elseif lv >= 190 and lv < 210 then return "SkyQuest", 1
+    elseif lv >= 210 and lv < 250 then return "SkyQuest", 2
+    elseif lv >= 250 and lv < 275 then return "PrisonQuest", 1
+    elseif lv >= 275 and lv < 300 then return "PrisonQuest", 2
+    elseif lv >= 300 and lv < 330 then return "MagmaQuest", 1
+    elseif lv >= 330 and lv < 425 then return "MagmaQuest", 2
+    elseif lv >= 425 and lv < 450 then return "FishmanQuest", 1
+    elseif lv >= 450 and lv < 575 then return "FishmanQuest", 2
+    elseif lv >= 575 and lv < 625 then return "SkyExp1Quest", 1
+    elseif lv >= 625 and lv < 700 then return "SkyExp1Quest", 2
+    else return "BanditQuest1", 1 end
+end
+
+-- [[ 4. SETUP UI FLOATING ]] --
 local ScreenGui = Instance.new("ScreenGui", PlayerGui)
 ScreenGui.Name = "YutaHub_Floating"
 ScreenGui.ResetOnSpawn = false
@@ -35,7 +61,6 @@ MainFrame.ClipsDescendants = true
 local UICorner = Instance.new("UICorner", MainFrame)
 UICorner.CornerRadius = UDim.new(1, 0)
 
--- Handle Klik & Drag
 local ClickButton = Instance.new("TextButton", MainFrame)
 ClickButton.Size = UDim2.new(1, 0, 0, 50)
 ClickButton.BackgroundTransparency = 1
@@ -44,34 +69,28 @@ ClickButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ClickButton.Font = Enum.Font.SourceSansBold
 ClickButton.TextSize = 25
 
--- Wadah Tombol Menu
 local ContentFrame = Instance.new("Frame", MainFrame)
 ContentFrame.Size = UDim2.new(1, 0, 1, -50)
 ContentFrame.Position = UDim2.new(0, 0, 0, 50)
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.Visible = false
-
 local Layout = Instance.new("UIListLayout", ContentFrame)
-Layout.Padding = UDim.new(0, 6)
-Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+Layout.Padding = UDim.new(0, 6); Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- [[ 4. SISTEM DRAG & TWEEN ]] --
+-- SISTEM DRAG & BUKA TUTUP
 local dragging, dragStart, startPos
 local isMenuOpen = false
-
 ClickButton.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true; dragStart = input.Position; startPos = MainFrame.Position
     end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
         MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = false
@@ -80,7 +99,7 @@ UserInputService.InputEnded:Connect(function(input)
             if isMenuOpen then
                 TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 160, 0, 260)}):Play()
                 TweenService:Create(UICorner, TweenInfo.new(0.3), {CornerRadius = UDim.new(0, 10)}):Play()
-                ClickButton.Text = "YUTA HUB 2"; ContentFrame.Visible = true
+                ClickButton.Text = "YUTA HUB"; ContentFrame.Visible = true
             else
                 ContentFrame.Visible = false
                 TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 50, 0, 50)}):Play()
@@ -91,33 +110,7 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- [[ 5. LOGIKA CORE (SIGMA & QUEST) ]] --
-
-local function GetQuestData()
-    local lv = LocalPlayer.Data.Level.Value
-    if lv < 10 then return "BanditQuest1", 1
-    elseif lv < 15 then return "MonkeyQuest1", 1
-    elseif lv < 30 then return "MonkeyQuest1", 2
-    elseif lv < 40 then return "PirateIslandQuest", 1
-    elseif lv < 60 then return "PirateIslandQuest", 2
-    else return "BanditQuest1", 1 end
-end
-
-local function GetTargets()
-    local t = {}
-    pcall(function()
-        for _, v in pairs(workspace.Enemies:GetChildren()) do
-            if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                if (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < 70 then
-                    table.insert(t, v)
-                end
-            end
-        end
-    end)
-    return t
-end
-
--- [[ 6. TOMBOL FITUR ]] --
+-- [[ 5. FUNGSI TOMBOL ]] --
 local function CreateButton(name, order, callback)
     local btn = Instance.new("TextButton", ContentFrame)
     btn.Size = UDim2.new(0.9, 0, 0, 40); btn.LayoutOrder = order; btn.Text = name .. ": OFF"
@@ -132,17 +125,26 @@ local function CreateButton(name, order, callback)
     end)
 end
 
--- AUTO ATTACK (Sigma Method)
+-- [[ 6. LOGIKA FITUR (OTAK) ]] --
+
+-- AUTO ATTACK SIGMA
 CreateButton("Auto Attack", 1, function(state)
     _G.AA = state
     while _G.AA do
         RunService.Heartbeat:Wait()
         pcall(function()
-            local targets = GetTargets()
-            if #targets > 0 then
+            local t = {}
+            for _, v in pairs(workspace.Enemies:GetChildren()) do
+                if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                    if (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < 70 then
+                        table.insert(t, v)
+                    end
+                end
+            end
+            if #t > 0 then
                 RegisterAttack:FireServer(0)
                 local args = {nil, {}}
-                for i, v in pairs(targets) do
+                for i, v in pairs(t) do
                     if not args[1] then args[1] = v.HumanoidRootPart end
                     args[2][i] = {v, v.HumanoidRootPart}
                 end
@@ -160,7 +162,7 @@ CreateButton("Fly Above NPC", 2, function(state)
         pcall(function()
             for _, v in pairs(workspace.Enemies:GetChildren()) do
                 if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 16, 0)
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
                     break
                 end
             end
@@ -168,19 +170,21 @@ CreateButton("Fly Above NPC", 2, function(state)
     end
 end)
 
--- AUTO QUEST (Fixed)
+-- AUTO QUEST FIX
 CreateButton("Auto Quest", 3, function(state)
     _G.Quest = state
-    while _G.Quest do
-        task.wait(1)
-        pcall(function()
-            local questUI = LocalPlayer.PlayerGui.Main:FindFirstChild("Quest")
-            if questUI and not questUI.Visible then
-                local qName, qId = GetQuestData()
-                CommF:InvokeServer("StartQuest", qName, qId)
-            end
-        end)
-    end
+    task.spawn(function()
+        while _G.Quest do
+            task.wait(1)
+            pcall(function()
+                local mainGui = LocalPlayer.PlayerGui:FindFirstChild("Main")
+                if mainGui and mainGui:FindFirstChild("Quest") and mainGui.Quest.Visible == false then
+                    local qName, qId = GetQuestData()
+                    CommF:InvokeServer("StartQuest", qName, qId)
+                end
+            end)
+        end
+    end)
 end)
 
-print("⚡ YUTA HUB 2: Floating Circle Edition Loaded! ⚡")
+print("⚡ YUTA HUB: All-in-One Loaded! ⚡")
