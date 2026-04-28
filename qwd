@@ -3,43 +3,48 @@ local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
-local VirtualUser = game:GetService("VirtualUser")
 local TweenService = game:GetService("TweenService")
 
--- [[ 1. RESET & CLEANUP ]] --
+-- [[ 1. KONEKSI REMOTE (ANTI-ERROR) ]] --
+local Net = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Net")
+local RegisterAttack = Net:WaitForChild("RE/RegisterAttack")
+local RegisterHit = Net:WaitForChild("RE/RegisterHit")
+local CommF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
+
+-- [[ 2. RESET STATUS ]] --
 _G.AA = false
 _G.Fly = false
 _G.Quest = false
 
+-- Hapus UI lama agar tidak numpuk
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 if PlayerGui:FindFirstChild("YutaHub_Floating") then PlayerGui.YutaHub_Floating:Destroy() end
 
--- [[ 2. SETUP UI UTAMA ]] --
+-- [[ 3. SETUP UI FLOATING ]] --
 local ScreenGui = Instance.new("ScreenGui", PlayerGui)
 ScreenGui.Name = "YutaHub_Floating"
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 50, 0, 50) -- Mulai sebagai bulat (50x50)
-MainFrame.Position = UDim2.new(0.5, -25, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+MainFrame.Size = UDim2.new(0, 50, 0, 50)
+MainFrame.Position = UDim2.new(0.5, -25, 0.1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.ClipsDescendants = true
-
 local UICorner = Instance.new("UICorner", MainFrame)
-UICorner.CornerRadius = UDim.new(1, 0) -- Bulat Sempurna
+UICorner.CornerRadius = UDim.new(1, 0)
 
--- Handle Click & Drag
+-- Handle Klik & Drag
 local ClickButton = Instance.new("TextButton", MainFrame)
 ClickButton.Size = UDim2.new(1, 0, 0, 50)
 ClickButton.BackgroundTransparency = 1
-ClickButton.Text = "Y" -- Logo awal
+ClickButton.Text = "Y"
 ClickButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ClickButton.Font = Enum.Font.SourceSansBold
-ClickButton.TextSize = 20
+ClickButton.TextSize = 25
 
--- Wadah Tombol (Isi Menu)
+-- Wadah Tombol Menu
 local ContentFrame = Instance.new("Frame", MainFrame)
 ContentFrame.Size = UDim2.new(1, 0, 1, -50)
 ContentFrame.Position = UDim2.new(0, 0, 0, 50)
@@ -47,18 +52,16 @@ ContentFrame.BackgroundTransparency = 1
 ContentFrame.Visible = false
 
 local Layout = Instance.new("UIListLayout", ContentFrame)
-Layout.Padding = UDim.new(0, 7)
+Layout.Padding = UDim.new(0, 6)
 Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- [[ 3. SISTEM DRAG & TWEEN (BUKA/TUTUP) ]] --
+-- [[ 4. SISTEM DRAG & TWEEN ]] --
 local dragging, dragStart, startPos
 local isMenuOpen = false
 
 ClickButton.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
+        dragging = true; dragStart = input.Position; startPos = MainFrame.Position
     end
 end)
 
@@ -72,18 +75,13 @@ end)
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = false
-        -- Jika tidak digeser jauh, maka dianggap KLIK untuk Buka/Tutup
-        local delta = (input.Position - dragStart).Magnitude
-        if delta < 5 then
+        if (input.Position - dragStart).Magnitude < 5 then
             isMenuOpen = not isMenuOpen
             if isMenuOpen then
-                -- Menjadi KOTAK MENU
                 TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 160, 0, 260)}):Play()
                 TweenService:Create(UICorner, TweenInfo.new(0.3), {CornerRadius = UDim.new(0, 10)}):Play()
-                ClickButton.Text = "YUTA HUB 1"
-                ContentFrame.Visible = true
+                ClickButton.Text = "YUTA HUB 2"; ContentFrame.Visible = true
             else
-                -- Menjadi BULAT KEMBALI
                 ContentFrame.Visible = false
                 TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 50, 0, 50)}):Play()
                 TweenService:Create(UICorner, TweenInfo.new(0.3), {CornerRadius = UDim.new(1, 0)}):Play()
@@ -93,85 +91,74 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- [[ 4. FUNGSI TOMBOL FITUR ]] --
-local function CreateButton(name, order, callback)
-    local btn = Instance.new("TextButton", ContentFrame)
-    btn.Size = UDim2.new(0.9, 0, 0, 40)
-    btn.LayoutOrder = order
-    btn.Text = name .. ": OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.SourceSansBold
-    Instance.new("UICorner", btn)
-
-    local active = false
-    btn.MouseButton1Click:Connect(function()
-        active = not active
-        btn.Text = name .. (active and ": ON" or ": OFF")
-        btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(40, 40, 40)
-        task.spawn(function() callback(active) end)
-    end)
-end
-
--- [[ 5. LOGIKA SAKTI SIGMA ]] --
-local function GetBladeHits()
-    local t = {}
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return t end
-    for _, folder in pairs({workspace:FindFirstChild("Enemies"), workspace:FindFirstChild("Characters")}) do
-        if folder then
-            for _, v in pairs(folder:GetChildren()) do
-                if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                    if (v.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude < 70 then
-                        table.insert(t, v)
-                    end
-                end
-            end
-        end
-    end
-    return t
-end
-
-local function AttackAll()
-    pcall(function()
-        local enemies = GetBladeHits()
-        if #enemies > 0 then
-            local net = ReplicatedStorage.Modules.Net
-            net["RE/RegisterAttack"]:FireServer(0)
-            local hitData = {nil, {}}
-            for i, v in pairs(enemies) do
-                if not hitData then hitData = v.HumanoidRootPart end
-                hitData[i] = {v, v.HumanoidRootPart}
-            end
-            net["RE/RegisterHit"]:FireServer(unpack(hitData))
-        end
-    end)
-end
+-- [[ 5. LOGIKA CORE (SIGMA & QUEST) ]] --
 
 local function GetQuestData()
     local lv = LocalPlayer.Data.Level.Value
     if lv < 10 then return "BanditQuest1", 1
     elseif lv < 15 then return "MonkeyQuest1", 1
     elseif lv < 30 then return "MonkeyQuest1", 2
+    elseif lv < 40 then return "PirateIslandQuest", 1
+    elseif lv < 60 then return "PirateIslandQuest", 2
     else return "BanditQuest1", 1 end
 end
 
--- [[ 6. ISI MENU ]] --
+local function GetTargets()
+    local t = {}
+    pcall(function()
+        for _, v in pairs(workspace.Enemies:GetChildren()) do
+            if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                if (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < 70 then
+                    table.insert(t, v)
+                end
+            end
+        end
+    end)
+    return t
+end
+
+-- [[ 6. TOMBOL FITUR ]] --
+local function CreateButton(name, order, callback)
+    local btn = Instance.new("TextButton", ContentFrame)
+    btn.Size = UDim2.new(0.9, 0, 0, 40); btn.LayoutOrder = order; btn.Text = name .. ": OFF"
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45); btn.TextColor3 = Color3.fromRGB(255, 255, 255); btn.Font = Enum.Font.SourceSansBold
+    Instance.new("UICorner", btn)
+    local active = false
+    btn.MouseButton1Click:Connect(function()
+        active = not active
+        btn.Text = name .. (active and ": ON" or ": OFF")
+        btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(45, 45, 45)
+        task.spawn(function() callback(active) end)
+    end)
+end
+
+-- AUTO ATTACK (Sigma Method)
 CreateButton("Auto Attack", 1, function(state)
     _G.AA = state
     while _G.AA do
         RunService.Heartbeat:Wait()
-        if _G.AA then AttackAll() end
+        pcall(function()
+            local targets = GetTargets()
+            if #targets > 0 then
+                RegisterAttack:FireServer(0)
+                local args = {nil, {}}
+                for i, v in pairs(targets) do
+                    if not args[1] then args[1] = v.HumanoidRootPart end
+                    args[2][i] = {v, v.HumanoidRootPart}
+                end
+                RegisterHit:FireServer(unpack(args))
+            end
+        end)
     end
 end)
 
+-- FLY ABOVE NPC
 CreateButton("Fly Above NPC", 2, function(state)
     _G.Fly = state
     while _G.Fly do
         RunService.Heartbeat:Wait()
         pcall(function()
-            local folder = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Characters")
-            for _, v in pairs(folder:GetChildren()) do
+            for _, v in pairs(workspace.Enemies:GetChildren()) do
                 if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
                     LocalPlayer.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
                     break
@@ -181,16 +168,19 @@ CreateButton("Fly Above NPC", 2, function(state)
     end
 end)
 
+-- AUTO QUEST (Fixed)
 CreateButton("Auto Quest", 3, function(state)
     _G.Quest = state
-    local CommF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
     while _G.Quest do
         task.wait(1)
-        if not LocalPlayer.PlayerGui.Main.Quest.Visible then
-            local qName, qId = GetQuestData()
-            CommF:InvokeServer("StartQuest", qName, qId)
-        end
+        pcall(function()
+            local questUI = LocalPlayer.PlayerGui.Main:FindFirstChild("Quest")
+            if questUI and not questUI.Visible then
+                local qName, qId = GetQuestData()
+                CommF:InvokeServer("StartQuest", qName, qId)
+            end
+        end)
     end
 end)
 
-print("⚡ YUTA HUB: Floating UI Loaded! ⚡")
+print("⚡ YUTA HUB 2: Floating Circle Edition Loaded! ⚡")
