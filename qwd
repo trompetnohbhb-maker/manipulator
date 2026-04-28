@@ -31,7 +31,7 @@ Header.Font = Enum.Font.SourceSansBold
 Header.TextSize = 16
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 10)
 
--- Drag System
+-- Sistem Drag
 local dragging, dragStart, startPos
 Header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -93,17 +93,17 @@ local function GetQuestData()
     else return "BanditQuest1", 1 end
 end
 
--- [[ 3. LOGIKA FAST ATTACK (SIGMA HUB METHOD) ]] --
+-- [[ 3. LOGIKA FAST ATTACK (SIGMA METHOD REAL) ]] --
 local function SigmaAttack()
     pcall(function()
         local Net = ReplicatedStorage.Modules.Net:FindFirstChild("RE/Attack") or ReplicatedStorage.Modules.Net:FindFirstChild("Attack")
         local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
         if Tool and Net then
-            -- SIGMA METHOD: Stacking 2 hit dengan durasi registrasi hit 0.15 detik
+            -- METODE SIGMA: Spam remote 2 kali dengan argumen 0.15
             Net:FireServer(0.15) 
             Net:FireServer(0.15)
             
-            -- Bypass: Memicu animasi internal tool tanpa animasi tangan (Silent)
+            -- Penting: Trigger animasi internal tool (Silent)
             if Tool:FindFirstChild("Attack") then
                 Tool.Attack:Fire()
             end
@@ -111,13 +111,14 @@ local function SigmaAttack()
     end)
 end
 
--- [[ 4. CORE FEATURES ]] --
+-- [[ 4. FITUR UTAMA ]] --
 
 -- AUTO ATTACK
 CreateButton("Auto Attack", 1, function(state)
     _G.AA = state
     while _G.AA do
-        RunService.RenderStepped:Wait() 
+        -- Gunakan Heartbeat agar loop stabil dan kencang
+        RunService.Heartbeat:Wait()
         if _G.AA then SigmaAttack() end
     end
 end)
@@ -164,7 +165,7 @@ CreateButton("Fly Above NPC", 3, function(state)
     end
 end)
 
--- AUTO QUEST (Smart)
+-- AUTO QUEST (Smart Level)
 CreateButton("Auto Quest", 4, function(state)
     _G.Quest = state
     while _G.Quest do
