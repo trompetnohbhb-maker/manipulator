@@ -188,4 +188,4 @@ CreateButton("Auto Quest", 3, function(state)
     end)
 end)
 
-print("⚡ YUTA HUB BANKAI: UNLEASHED! ⚡")
+print("⚡ YUTA HUB BANKAI: IN DEVOLOPMENT ⚡")
