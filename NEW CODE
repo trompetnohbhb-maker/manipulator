@@ -1,0 +1,235 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+-- [[ 1. KONEKSI REMOTE ]] --
+local Net = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Net")
+local RegisterAttack = Net:WaitForChild("RE/RegisterAttack")
+local RegisterHit = Net:WaitForChild("RE/RegisterHit")
+local CommF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
+
+-- [[ 2. RESET STATUS ]] --
+_G.AA = false
+_G.Fly = false
+_G.Quest = false
+
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+if PlayerGui:FindFirstChild("YutaHub_Bankai") then PlayerGui.YutaHub_Bankai:Destroy() end
+
+-- [[ 3. DATA QUEST OTOMATIS (Hingga Level 2800) ]] --
+local function GetQuestData()
+    local lv = LocalPlayer.Data.Level.Value
+    
+    -- SEA 1
+    if lv < 10 then return "BanditQuest1", 1
+    elseif lv < 15 then return "MonkeyQuest1", 1
+    elseif lv < 30 then return "MonkeyQuest1", 2
+    elseif lv < 40 then return "PirateIslandQuest", 1
+    elseif lv < 60 then return "PirateIslandQuest", 2
+    elseif lv < 75 then return "DesertIslandQuest", 1
+    elseif lv < 90 then return "DesertIslandQuest", 2
+    elseif lv < 120 then return "SnowIslandQuest", 1
+    elseif lv < 150 then return "SnowIslandQuest", 2
+    elseif lv < 175 then return "MarineTreeQuest", 1
+    elseif lv < 190 then return "MarineTreeQuest", 2
+    elseif lv < 210 then return "SkyQuest", 1
+    elseif lv < 250 then return "SkyQuest", 2
+    elseif lv < 275 then return "PrisonQuest", 1
+    elseif lv < 300 then return "PrisonQuest", 2
+    elseif lv < 330 then return "MagmaQuest", 1
+    elseif lv < 425 then return "MagmaQuest", 2
+    elseif lv < 450 then return "FishmanQuest", 1
+    elseif lv < 575 then return "FishmanQuest", 2
+    elseif lv < 625 then return "SkyExp1Quest", 1
+    elseif lv < 700 then return "SkyExp1Quest", 2
+    
+    -- SEA 2
+    elseif lv < 725 then return "Area1Quest", 1
+    elseif lv < 775 then return "Area1Quest", 2
+    elseif lv < 800 then return "Area2Quest", 1
+    elseif lv < 875 then return "Area2Quest", 2
+    elseif lv < 900 then return "MarineQuest2", 1
+    elseif lv < 950 then return "MarineQuest2", 2
+    elseif lv < 975 then return "ZombieQuest", 1
+    elseif lv < 1050 then return "ZombieQuest", 2
+    elseif lv < 1075 then return "SnowMountainQuest", 1
+    elseif lv < 1125 then return "SnowMountainQuest", 2
+    elseif lv < 1175 then return "IceIslandQuest", 1
+    elseif lv < 1250 then return "IceIslandQuest", 2
+    elseif lv < 1275 then return "LavaQuest", 1
+    elseif lv < 1350 then return "LavaQuest", 2
+    elseif lv < 1425 then return "FishmanQuest2", 1
+    elseif lv < 1500 then return "FishmanQuest2", 2
+    
+    -- SEA 3
+    elseif lv < 1575 then return "Area1Quest", 1
+    elseif lv < 1625 then return "Area1Quest", 2
+    elseif lv < 1650 then return "Area2Quest", 1
+    elseif lv < 1725 then return "Area2Quest", 2
+    elseif lv < 1775 then return "FloatingTurtleQuest", 1
+    elseif lv < 1825 then return "FloatingTurtleQuest", 2
+    elseif lv < 1900 then return "FloatingTurtleQuest", 3
+    elseif lv < 1975 then return "FloatingTurtleQuest", 4
+    elseif lv < 2025 then return "HauntedQuest1", 1
+    elseif lv < 2075 then return "HauntedQuest1", 2
+    elseif lv < 2125 then return "HauntedQuest2", 1
+    elseif lv < 2200 then return "HauntedQuest2", 2
+    elseif lv < 2275 then return "IceCreamIslandQuest", 1
+    elseif lv < 2325 then return "IceCreamIslandQuest", 2
+    elseif lv < 2375 then return "CakeQuest1", 1
+    elseif lv < 2425 then return "CakeQuest1", 2
+    elseif lv < 2475 then return "CakeQuest2", 1
+    elseif lv < 2525 then return "CakeQuest2", 2
+    elseif lv < 2575 then return "AegisCurQuest", 1
+    elseif lv < 2625 then return "AegisCurQuest", 2
+    elseif lv < 2675 then return "GasQuest", 1
+    elseif lv < 2725 then return "GasQuest", 2
+    elseif lv < 2775 then return "ElizaQuest", 1
+    elseif lv <= 2800 then return "ElizaQuest", 2
+    
+    else return "ElizaQuest", 2 end
+end
+
+-- [[ 4. SETUP UI FLOATING BANKAI ]] --
+local ScreenGui = Instance.new("ScreenGui", PlayerGui)
+ScreenGui.Name = "YutaHub_Bankai"
+ScreenGui.ResetOnSpawn = false
+
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 50, 0, 50)
+MainFrame.Position = UDim2.new(0.5, -25, 0.1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.ClipsDescendants = true
+local UICorner = Instance.new("UICorner", MainFrame)
+UICorner.CornerRadius = UDim.new(1, 0)
+
+local ClickButton = Instance.new("TextButton", MainFrame)
+ClickButton.Size = UDim2.new(1, 0, 0, 50)
+ClickButton.BackgroundTransparency = 1
+ClickButton.Text = "B"
+ClickButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ClickButton.Font = Enum.Font.SourceSansBold
+ClickButton.TextSize = 25
+
+local ContentFrame = Instance.new("Frame", MainFrame)
+ContentFrame.Size = UDim2.new(1, 0, 1, -50)
+ContentFrame.Position = UDim2.new(0, 0, 0, 50)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Visible = false
+local Layout = Instance.new("UIListLayout", ContentFrame)
+Layout.Padding = UDim.new(0, 6); Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- SISTEM DRAG & BUKA TUTUP
+local dragging, dragStart, startPos
+local isMenuOpen = false
+ClickButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = MainFrame.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+        if (input.Position - dragStart).Magnitude < 5 then
+            isMenuOpen = not isMenuOpen
+            if isMenuOpen then
+                TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 165, 0, 260)}):Play()
+                TweenService:Create(UICorner, TweenInfo.new(0.3), {CornerRadius = UDim.new(0, 10)}):Play()
+                ClickButton.Text = "YUTA HUB BANKAI"; ContentFrame.Visible = true; ClickButton.TextSize = 14
+            else
+                ContentFrame.Visible = false
+                TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 50, 0, 50)}):Play()
+                TweenService:Create(UICorner, TweenInfo.new(0.3), {CornerRadius = UDim.new(1, 0)}):Play()
+                ClickButton.Text = "B"; ClickButton.TextSize = 25
+            end
+        end
+    end
+end)
+
+-- [[ 5. FUNGSI TOMBOL ]] --
+local function CreateButton(name, order, callback)
+    local btn = Instance.new("TextButton", ContentFrame)
+    btn.Size = UDim2.new(0.9, 0, 0, 40); btn.LayoutOrder = order; btn.Text = name .. ": OFF"
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45); btn.TextColor3 = Color3.fromRGB(255, 255, 255); btn.Font = Enum.Font.SourceSansBold
+    Instance.new("UICorner", btn)
+    local active = false
+    btn.MouseButton1Click:Connect(function()
+        active = not active
+        btn.Text = name .. (active and ": ON" or ": OFF")
+        btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(45, 45, 45)
+        task.spawn(function() callback(active) end)
+    end)
+end
+
+-- [[ 6. LOGIKA FITUR ]] --
+
+-- AUTO ATTACK
+CreateButton("Auto Attack", 1, function(state)
+    _G.AA = state
+    while _G.AA do
+        RunService.Heartbeat:Wait()
+        pcall(function()
+            local t = {}
+            for _, v in pairs(workspace.Enemies:GetChildren()) do
+                if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                    if (v.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < 100 then
+                        table.insert(t, v)
+                    end
+                end
+            end
+            if #t > 0 then
+                RegisterAttack:FireServer(0)
+                local args = {nil, {}}
+                for i, v in pairs(t) do
+                    if not args[1] then args[1] = v.HumanoidRootPart end
+                    args[2][i] = {v, v.HumanoidRootPart}
+                end
+                RegisterHit:FireServer(unpack(args))
+            end
+        end)
+    end
+end)
+
+-- FLY ABOVE NPC
+CreateButton("Fly Above NPC", 2, function(state)
+    _G.Fly = state
+    while _G.Fly do
+        RunService.Heartbeat:Wait()
+        pcall(function()
+            for _, v in pairs(workspace.Enemies:GetChildren()) do
+                if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0)
+                    break
+                end
+            end
+        end)
+    end
+end)
+
+-- AUTO QUEST (ALL SEAS - UPDATED 2800)
+CreateButton("Auto Quest", 3, function(state)
+    _G.Quest = state
+    while _G.Quest do
+        pcall(function()
+            local mainGui = LocalPlayer.PlayerGui:FindFirstChild("Main")
+            if mainGui and mainGui:FindFirstChild("Quest") and mainGui.Quest.Visible == false then
+                local qName, qId = GetQuestData()
+                CommF:InvokeServer("StartQuest", qName, qId)
+            end
+        end)
+        task.wait(1.5)
+    end
+end)
+
+print("⚡ YUTA HUB BANKAI: LV 2800 READY ⚡")
